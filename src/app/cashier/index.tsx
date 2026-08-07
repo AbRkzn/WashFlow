@@ -1,16 +1,305 @@
-import { PlaceholderScreen } from '@/components/placeholder-screen';
-import { RoleGuard } from '@/components/role-guard';
-import { SessionHeader } from '@/components/session-header';
+import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function CashierHome() {
+import { queueKeys, recentPlatesKeys, useActiveServices, useQueuedCount, useRecentPlates } from '@/data/queries';
+import { SessionHeader } from '@/components/session-header';
+import { checkIn, lookupByPlate, type VehicleMatch } from '@/services/checkin';
+import { formatPesos } from '@/utils/money';
+
+export default function CashierCheckInScreen() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const [plate, setPlate] = useState('');
+  const [match, setMatch] = useState<VehicleMatch | null>(null);
+  const [searched, setSearched] = useState(false);
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const { data: services } = useActiveServices();
+  const { data: recentPlates = [] } = useRecentPlates();
+  const { data: queuedCount = 0 } = useQueuedCount();
+
+  const selectedService = useMemo(
+    () => services?.find((service) => service.id === selectedServiceId) ?? null,
+    [services, selectedServiceId],
+  );
+
+  const canConfirm = !!plate.trim() && !!selectedServiceId && !busy;
+
+  const handleLookup = async (plateToLookup = plate) => {
+    const normalized = plateToLookup.trim().toUpperCase();
+    setPlate(normalized);
+    setSearched(true);
+    setSuccess(null);
+    if (!normalized) {
+      setMatch(null);
+      return;
+    }
+    try {
+      setMatch(await lookupByPlate(normalized));
+    } catch (e) {
+      setMatch(null);
+      setError(e instanceof Error ? e.message : 'Lookup failed.');
+    }
+  };
+
+  const handleConfirm = async () => {
+    if (!canConfirm || !selectedServiceId) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const { vehicle } = await checkIn({
+        plate,
+        serviceId: selectedServiceId,
+        newCustomer: match ? undefined : { name: customerName, phone: customerPhone },
+      });
+      setSuccess(`${vehicle.plateNumber} queued.`);
+      setPlate('');
+      setMatch(null);
+      setSearched(false);
+      setCustomerName('');
+      setCustomerPhone('');
+      setSelectedServiceId(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queueKeys.queued }),
+        queryClient.invalidateQueries({ queryKey: queueKeys.queuedCount }),
+        queryClient.invalidateQueries({ queryKey: recentPlatesKeys.list }),
+      ]);
+      setTimeout(() => router.push('/cashier/queue'), 800);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Check-in failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <RoleGuard roles={['cashier', 'manager', 'admin']}>
-      <PlaceholderScreen
-        badge="Cashier"
-        title="Check-in"
-        description="P0 skeleton. Plate lookup, service presets, and the 3-tap check-in flow land in P3."
-        header={<SessionHeader />}
-      />
-    </RoleGuard>
+    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <SessionHeader />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1"
+      >
+        <ScrollView
+          className="flex-1"
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
+        >
+          <View className="flex-row items-center justify-between">
+            <View>
+              <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Check-in</Text>
+              <Text className="text-sm text-neutral-500 dark:text-neutral-400">
+                Plate → service → queue
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => router.push('/cashier/queue')}
+              className="flex-row items-center gap-2 rounded-2xl bg-neutral-900 px-4 py-2.5 active:opacity-80 dark:bg-white"
+            >
+              <Text className="text-sm font-semibold text-white dark:text-neutral-900">
+                Queue
+              </Text>
+              <View className="rounded-full bg-brand-500 px-2 py-0.5">
+                <Text className="text-xs font-bold text-white">{queuedCount}</Text>
+              </View>
+            </Pressable>
+          </View>
+
+          {recentPlates.length > 0 ? (
+            <View className="mt-4">
+              <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                Recent
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                {recentPlates.map((recent) => (
+                  <Pressable
+                    key={recent.id}
+                    onPress={() => handleLookup(recent.plate)}
+                    className="rounded-full border border-brand-200 bg-brand-50 px-4 py-2 active:opacity-70 dark:border-brand-900 dark:bg-brand-950"
+                  >
+                    <Text className="text-sm font-semibold text-brand-700 dark:text-brand-300">
+                      {recent.plate}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
+
+          <View className="mt-4">
+            <Text className="mb-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
+              Plate number
+            </Text>
+            <View className="flex-row gap-2">
+              <TextInput
+                value={plate}
+                onChangeText={(text) => {
+                  setPlate(text.toUpperCase());
+                  setMatch(null);
+                  setSearched(false);
+                  setSuccess(null);
+                }}
+                placeholder="e.g. ABC-1234"
+                placeholderTextColor="#94A3B8"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                className="flex-1 rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-base font-semibold tracking-widest text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
+              />
+              <Pressable
+                onPress={() => handleLookup()}
+                className="items-center justify-center rounded-2xl bg-brand-600 px-5 active:opacity-80"
+              >
+                <Text className="text-sm font-semibold text-white">Look up</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {error ? (
+            <Text className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</Text>
+          ) : null}
+
+          {success ? (
+            <View className="mt-3 rounded-2xl bg-green-50 px-4 py-3 dark:bg-green-950">
+              <Text className="text-sm font-semibold text-green-700 dark:text-green-400">
+                {success}
+              </Text>
+            </View>
+          ) : null}
+
+          {searched && plate.trim() && !error ? (
+            <View className="mt-4">
+              {match ? (
+                <View className="rounded-2xl border border-brand-200 bg-white p-4 dark:border-brand-900 dark:bg-neutral-900">
+                  <Text className="text-xs font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-400">
+                    Returning customer
+                  </Text>
+                  <Text className="mt-1 text-lg font-bold text-neutral-900 dark:text-white">
+                    {match.customer.name}
+                  </Text>
+                  <Text className="text-sm text-neutral-500 dark:text-neutral-400">
+                    {match.vehicle.make && match.vehicle.model
+                      ? `${match.vehicle.make} ${match.vehicle.model}`
+                      : 'Vehicle registered'}
+                    {match.customer.phone ? ` · ${match.customer.phone}` : ''}
+                  </Text>
+                </View>
+              ) : (
+                <View className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                  <Text className="text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                    New vehicle
+                  </Text>
+                  <Text className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+                    Name and phone are optional — we can queue as walk-in.
+                  </Text>
+                  <View className="mt-3 gap-2">
+                    <TextInput
+                      value={customerName}
+                      onChangeText={setCustomerName}
+                      placeholder="Name (optional)"
+                      placeholderTextColor="#94A3B8"
+                      className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
+                    />
+                    <TextInput
+                      value={customerPhone}
+                      onChangeText={setCustomerPhone}
+                      placeholder="Phone (optional)"
+                      placeholderTextColor="#94A3B8"
+                      keyboardType="phone-pad"
+                      className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
+                    />
+                  </View>
+                </View>
+              )}
+            </View>
+          ) : null}
+
+          <Text className="mb-2 mt-6 text-sm font-medium text-neutral-700 dark:text-neutral-300">
+            Service
+          </Text>
+          <View className="gap-3">
+            {services?.map((service) => {
+              const selected = service.id === selectedServiceId;
+              return (
+                <Pressable
+                  key={service.id}
+                  onPress={() => {
+                    setSelectedServiceId(service.id);
+                    setSuccess(null);
+                  }}
+                  className={`rounded-2xl border p-4 active:opacity-80 ${
+                    selected
+                      ? 'border-brand-600 bg-brand-50 dark:border-brand-400 dark:bg-brand-950'
+                      : 'border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900'
+                  }`}
+                >
+                  <View className="flex-row items-center justify-between">
+                    <Text
+                      className={`text-base font-semibold ${
+                        selected
+                          ? 'text-brand-800 dark:text-brand-200'
+                          : 'text-neutral-900 dark:text-white'
+                      }`}
+                    >
+                      {service.name}
+                    </Text>
+                    <Text
+                      className={`text-base font-bold ${
+                        selected
+                          ? 'text-brand-700 dark:text-brand-300'
+                          : 'text-neutral-900 dark:text-white'
+                      }`}
+                    >
+                      {formatPesos(service.priceCents)}
+                    </Text>
+                  </View>
+                  {service.description ? (
+                    <Text className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                      {service.description}
+                    </Text>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Pressable
+            onPress={handleConfirm}
+            disabled={!canConfirm}
+            className="mt-6 w-full flex-row items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 py-4 active:opacity-80 disabled:opacity-40"
+          >
+            {busy ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text className="text-base font-semibold text-white">Confirm &amp; Queue</Text>
+            )}
+            {selectedService && !busy ? (
+              <Text className="text-base font-semibold text-white/90">
+                · {formatPesos(selectedService.priceCents)}
+              </Text>
+            ) : null}
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

@@ -104,6 +104,8 @@ Local only: job-assignment buzz to Washer, day-close summary to Manager. No cust
 
 - Git Flow: `main` (production), `develop`, `feature/*`.
 - Conventional commits (`feat:`, `fix:`, ...), short PRs.
+- **Phase merge ritual (always do this):** after each phase is verified and approved, merge `develop` into `main` with:
+  `git checkout main; git pull origin main; git merge develop; git push origin main` — then switch back: `git checkout develop`.
 - Demo strategy: seed script with realistic fake data + one-tap "Demo Mode" pre-populated app + README architecture section.
 - Portfolio showcase centerpiece: the sync engine (conflict resolution, offline queue, tombstones).
 
