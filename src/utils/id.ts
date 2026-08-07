@@ -1,3 +1,5 @@
+import * as Crypto from 'expo-crypto';
+
 function uuidHex(bytes: Uint8Array): string {
   let out = '';
   for (let i = 0; i < bytes.length; i++) {
@@ -11,7 +13,7 @@ function uuidHex(bytes: Uint8Array): string {
 
 export function uuidv7(): string {
   const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
+  Crypto.getRandomValues(bytes);
 
   const ts = BigInt(Date.now());
   bytes[0] = Number((ts >> 40n) & 0xffn);

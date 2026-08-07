@@ -40,8 +40,12 @@ export default function RootLayout() {
         <StatusBar style="auto" />
         {databaseReady ? (
           <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
             <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(app)" />
+            <Stack.Screen name="admin" />
+            <Stack.Screen name="manager" />
+            <Stack.Screen name="cashier" />
+            <Stack.Screen name="washer" />
           </Stack>
         ) : (
           <View className="flex-1 items-center justify-center bg-neutral-50 dark:bg-neutral-950">

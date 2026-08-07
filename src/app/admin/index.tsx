@@ -1,5 +1,5 @@
-import { RoleGuard } from '@/components/role-guard';
 import { PlaceholderScreen } from '@/components/placeholder-screen';
+import { RoleGuard } from '@/components/role-guard';
 
 export default function AdminHome() {
   return (
