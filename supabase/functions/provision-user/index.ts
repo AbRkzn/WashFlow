@@ -1,0 +1,87 @@
+import { createClient } from 'npm:@supabase/supabase-js@2';
+
+const VALID_ROLES = ['admin', 'manager', 'cashier', 'washer'] as const;
+type Role = (typeof VALID_ROLES)[number];
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+interface ProvisionRequest {
+  email: string;
+  password: string;
+  name: string;
+  role: Role;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: CORS_HEADERS });
+  }
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
+  }
+
+  try {
+    // Resolve the caller from the bearer token; only admins may provision.
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return json({ error: 'Missing bearer token' }, 401, CORS_HEADERS);
+    }
+
+    const callerClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      authHeader.slice('Bearer '.length),
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const { data: caller, error: callerError } = await callerClient.auth.getUser();
+    if (callerError || !caller.user) {
+      return json({ error: 'Invalid caller session' }, 401, CORS_HEADERS);
+    }
+    if (caller.user.app_metadata.role !== 'admin') {
+      return json({ error: 'Admin role required' }, 403, CORS_HEADERS);
+    }
+
+    const body = (await req.json()) as ProvisionRequest;
+    const email = body.email?.trim().toLowerCase();
+    const role = body.role;
+    const name = body.name?.trim() ?? email?.split('@')[0] ?? 'User';
+
+    if (!email || !body.password || body.password.length < 6) {
+      return json({ error: 'email, password (6+ chars) required' }, 400, CORS_HEADERS);
+    }
+    if (!VALID_ROLES.includes(role)) {
+      return json({ error: `role must be one of: ${VALID_ROLES.join(', ')}` }, 400, CORS_HEADERS);
+    }
+
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+
+    const { data, error } = await adminClient.auth.admin.createUser({
+      email,
+      password: body.password,
+      email_confirm: true,
+      user_metadata: { full_name: name },
+      app_metadata: { role },
+    });
+
+    if (error) {
+      return json({ error: error.message }, 400, CORS_HEADERS);
+    }
+    return json({ id: data.user.id, email: data.user.email, role }, 200, CORS_HEADERS);
+  } catch (error) {
+    return json({ error: error instanceof Error ? error.message : 'Unexpected error' }, 500, CORS_HEADERS);
+  }
+});
+
+function json(payload: unknown, status: number, headers: Record<string, string>) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...headers },
+  });
+}

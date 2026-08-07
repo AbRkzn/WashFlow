@@ -8,6 +8,13 @@
       "when": 1786063954696,
       "tag": "0000_open_weapon_omega",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1786065292838,
+      "tag": "0001_misty_tattoo",
+      "breakpoints": true
     }
   ]
 }
