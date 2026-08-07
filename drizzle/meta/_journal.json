@@ -15,6 +15,13 @@
       "when": 1786065292838,
       "tag": "0001_misty_tattoo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786067187463,
+      "tag": "0002_aromatic_random",
+      "breakpoints": true
     }
   ]
 }
