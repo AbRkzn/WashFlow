@@ -163,4 +163,5 @@ Each phase ends with a STOP + approval gate (Push to GitHub / Review / UI mockup
 ### Phase status
 
 - **P0 Foundation — DONE** (commit `b943fa9`, branch `main`): Expo SDK 57 + TS strict, NativeWind v4.2.6 (Tailwind 3.4, `darkMode: class`) + brand tokens (water palette), Expo Router skeleton with `(auth)` + `(app)` role groups (admin/manager/cashier/washer) + `RoleGuard`, Zustand session store, TanStack Query provider, ESLint (eslint-config-expo flat) + `typecheck`. Git Flow: `main`/`develop` on GitHub.
-- **P1 Local data layer** — NEXT. Drizzle schema, SQLite migrations, repositories, seed script.
+- **P1 Local data layer — DONE** (on `develop`): Drizzle schema (`src/data/schema/`: customers/vehicles/services + sync columns `id/version/server_seq/deleted_at/origin_device`), migrations generated (`drizzle/`, inlined via `babel-plugin-inline-import` + `metro sourceExts: sql`), DB bootstrap `src/data/db.ts` (gated in root layout), repositories (`src/data/repositories/`), UUIDv7 util, dev seed (`src/data/seed.ts`). `npm run db:generate` regenerates migrations.
+- **P2 Auth + roles** — NEXT. Supabase Auth, in-app provisioning, sessions, audit trail, RBAC guards.
