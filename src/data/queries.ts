@@ -21,6 +21,15 @@ import {
   listQueuedWithDetails,
   listRecentPlates,
 } from '@/services/checkin';
+import {
+  approveVoidRequest,
+  listCollectibleJobs,
+  listPendingVoidRequests,
+  payJob,
+  rejectVoidRequest,
+  requestVoid,
+  voidJob,
+} from '@/services/payments';
 
 export const jobKeys = {
   all: ['jobs'] as const,
@@ -46,6 +55,15 @@ export const userKeys = {
 export const photoKeys = {
   all: ['photos'] as const,
   job: (jobId: string) => ['photos', 'job', jobId] as const,
+};
+
+export const paymentKeys = {
+  collectible: ['payments', 'collectible'] as const,
+};
+
+export const voidRequestKeys = {
+  all: ['void-requests'] as const,
+  pending: ['void-requests', 'pending'] as const,
 };
 
 export function useQueuedJobs() {
@@ -189,5 +207,79 @@ export function useReleaseJob() {
   return useMutation({
     mutationFn: (input: { jobId: string; actorId: string }) => releaseJob(input.jobId, input.actorId),
     onSuccess: invalidate,
+  });
+}
+
+export function useCollectibleJobs() {
+  return useQuery({
+    queryKey: paymentKeys.collectible,
+    queryFn: listCollectibleJobs,
+  });
+}
+
+export function usePayJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { jobId: string; actorId: string }) =>
+      payJob(input.jobId, input.actorId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.all });
+      queryClient.invalidateQueries({ queryKey: paymentKeys.collectible });
+    },
+  });
+}
+
+export function useVoidJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { jobId: string; actorId: string; reason?: string }) =>
+      voidJob(input.jobId, input.actorId, input.reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.all });
+      queryClient.invalidateQueries({ queryKey: paymentKeys.collectible });
+      queryClient.invalidateQueries({ queryKey: voidRequestKeys.pending });
+    },
+  });
+}
+
+export function useRequestVoid() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { jobId: string; actorId: string; reason?: string }) =>
+      requestVoid(input.jobId, input.actorId, input.reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.all });
+      queryClient.invalidateQueries({ queryKey: voidRequestKeys.pending });
+    },
+  });
+}
+
+export function usePendingVoidRequests() {
+  return useQuery({
+    queryKey: voidRequestKeys.pending,
+    queryFn: listPendingVoidRequests,
+  });
+}
+
+export function useApproveVoidRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { requestId: string; managerId: string }) =>
+      approveVoidRequest(input.requestId, input.managerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.all });
+      queryClient.invalidateQueries({ queryKey: voidRequestKeys.pending });
+    },
+  });
+}
+
+export function useRejectVoidRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { requestId: string; managerId: string }) =>
+      rejectVoidRequest(input.requestId, input.managerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: voidRequestKeys.pending });
+    },
   });
 }

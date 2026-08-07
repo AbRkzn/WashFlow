@@ -21,12 +21,12 @@ export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
 };
 
 const JOB_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
-  queued: ['assigned'],
-  assigned: ['in_progress', 'queued'],
-  in_progress: ['quality_check', 'assigned', 'queued'],
-  quality_check: ['completed', 'in_progress'],
-  completed: ['paid'],
-  paid: [],
+  queued: ['assigned', 'voided'],
+  assigned: ['in_progress', 'queued', 'voided'],
+  in_progress: ['quality_check', 'assigned', 'queued', 'voided'],
+  quality_check: ['completed', 'in_progress', 'voided'],
+  completed: ['paid', 'voided'],
+  paid: ['voided'],
   voided: [],
 };
 
@@ -38,6 +38,15 @@ export const WORKING_STATUSES: readonly JobStatus[] = [
 ];
 
 export const ACTIVE_STATUSES: readonly JobStatus[] = [...WORKING_STATUSES, 'completed'];
+
+export const VOIDABLE_STATUSES: readonly JobStatus[] = [
+  'queued',
+  'assigned',
+  'in_progress',
+  'quality_check',
+  'completed',
+  'paid',
+];
 
 export function canTransition(from: JobStatus, to: JobStatus): boolean {
   return JOB_TRANSITIONS[from].includes(to);

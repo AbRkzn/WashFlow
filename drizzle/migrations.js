@@ -6,6 +6,7 @@ import m0001 from './0001_misty_tattoo.sql';
 import m0002 from './0002_aromatic_random.sql';
 import m0003 from './0003_magenta_rhino.sql';
 import m0004 from './0004_glossy_prodigy.sql';
+import m0005 from './0005_workable_microchip.sql';
 
   export default {
     journal,
@@ -14,7 +15,8 @@ import m0004 from './0004_glossy_prodigy.sql';
 m0001,
 m0002,
 m0003,
-m0004
+m0004,
+m0005
     }
   }
   

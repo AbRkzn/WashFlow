@@ -1,16 +1,34 @@
-import { useMemo } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useQueuedJobs } from '@/data/queries';
+import { VoidRequestModal } from '@/components/void-request-modal';
+import { useQueuedJobs, useVoidJob } from '@/data/queries';
 import { SessionHeader } from '@/components/session-header';
+import { useSessionStore } from '@/stores/session-store';
 import { formatPesos } from '@/utils/money';
 import { formatClockTime } from '@/utils/time';
 
 export default function CashierQueueScreen() {
+  const actorId = useSessionStore((s) => s.user?.id ?? '');
   const { data: entries, isLoading, isRefetching, refetch } = useQueuedJobs();
+  const voidJob = useVoidJob();
 
+  const [voidingJobId, setVoidingJobId] = useState<string | null>(null);
   const queued = useMemo(() => entries ?? [], [entries]);
+
+  const voidingEntry = queued.find((entry) => entry.job.id === voidingJobId) ?? null;
+
+  const handleVoid = (reason: string) => {
+    if (!voidingJobId) return;
+    voidJob
+      .mutateAsync({ jobId: voidingJobId, actorId, reason })
+      .then(() => Alert.alert('Done', 'Job voided.'))
+      .catch((error) =>
+        Alert.alert('Void failed', error instanceof Error ? error.message : 'Something went wrong.'),
+      )
+      .finally(() => setVoidingJobId(null));
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
@@ -65,11 +83,26 @@ export default function CashierQueueScreen() {
                   {item.service?.name ?? 'Service'}
                   {item.service ? ` · ${formatPesos(item.service.priceCents)}` : ''}
                 </Text>
+                <Pressable
+                  onPress={() => setVoidingJobId(item.job.id)}
+                  className="mt-3 self-start rounded-lg border border-red-200 px-3 py-1.5 active:bg-red-50 dark:border-red-900 dark:active:bg-red-950"
+                >
+                  <Text className="text-xs font-semibold text-red-600 dark:text-red-400">Void</Text>
+                </Pressable>
               </View>
             </View>
           )}
         />
       )}
+
+      <VoidRequestModal
+        visible={voidingEntry !== null}
+        title="Void queued job"
+        plateNumber={voidingEntry?.vehicle.plateNumber ?? ''}
+        busy={voidJob.isPending}
+        onClose={() => setVoidingJobId(null)}
+        onConfirm={handleVoid}
+      />
     </SafeAreaView>
   );
 }
