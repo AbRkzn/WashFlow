@@ -1,5 +1,6 @@
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
+import type { JobStatus } from '@/domain/job';
 import { syncColumns } from './common';
 import { customers } from './customers';
 import { services } from './services';
@@ -10,7 +11,7 @@ export const jobs = sqliteTable('jobs', {
   customerId: text('customer_id').references(() => customers.id),
   vehicleId: text('vehicle_id').references(() => vehicles.id),
   serviceId: text('service_id').references(() => services.id),
-  status: text('status').notNull().default('queued'),
+  status: text('status').$type<JobStatus>().notNull().default('queued'),
   priceCents: integer('price_cents').notNull(),
   assignedTo: text('assigned_to'),
   notes: text('notes'),

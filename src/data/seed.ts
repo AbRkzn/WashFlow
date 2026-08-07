@@ -1,6 +1,11 @@
 import type { Database } from './db';
 
-import { CustomerRepository, ServiceRepository, VehicleRepository } from './repositories';
+import { CustomerRepository, ServiceRepository, UserRepository, VehicleRepository } from './repositories';
+
+const defaultWashers = [
+  { id: 'seed-washer-1', email: 'washer1@washflow.app', name: 'Washflow Washer 1', role: 'washer' as const },
+  { id: 'seed-washer-2', email: 'washer2@washflow.app', name: 'Washflow Washer 2', role: 'washer' as const },
+];
 
 const defaultServices = [
   {
@@ -67,5 +72,12 @@ export async function seedIfEmpty(db: Database): Promise<void> {
       color: 'Gray',
       year: 2020,
     });
+  }
+
+  const users = new UserRepository(db);
+  if ((await users.listWashers()).length === 0) {
+    for (const washer of defaultWashers) {
+      await users.upsert(washer);
+    }
   }
 }

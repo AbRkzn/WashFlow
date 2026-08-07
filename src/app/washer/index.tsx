@@ -1,16 +1,177 @@
-import { PlaceholderScreen } from '@/components/placeholder-screen';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { RoleGuard } from '@/components/role-guard';
 import { SessionHeader } from '@/components/session-header';
+import { useClaimJob, useClaimNextJob, useMarkDone, useQueuedJobs, useStartJob, useApproveQuality, useWasherBoard } from '@/data/queries';
+import type { QueueEntry } from '@/data/repositories';
+import { JOB_STATUS_LABELS, type JobStatus } from '@/domain/job';
+import { useSessionStore } from '@/stores/session-store';
+
+const STATUS_CHIP: Record<JobStatus, string> = {
+  queued: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300',
+  assigned: 'bg-brand-100 text-brand-700 dark:bg-brand-950 dark:text-brand-300',
+  in_progress: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+  quality_check: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
+  completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+  paid: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+  voided: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
+};
+
+function JobCard({
+  entry,
+  buttonLabel,
+  onButton,
+  busy,
+}: {
+  entry: QueueEntry;
+  buttonLabel?: string;
+  onButton?: () => void;
+  busy?: boolean;
+}) {
+  return (
+    <View className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+      <View className="flex-row items-center justify-between">
+        <Text className="text-xl font-bold tracking-widest text-neutral-900 dark:text-white">
+          {entry.vehicle.plateNumber}
+        </Text>
+        <View className="rounded-full bg-neutral-100 px-2.5 py-1 dark:bg-neutral-800">
+          <Text className={`text-xs font-semibold ${STATUS_CHIP[entry.job.status]}`}>
+            {JOB_STATUS_LABELS[entry.job.status]}
+          </Text>
+        </View>
+      </View>
+      <Text className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
+        {entry.customer.name}
+      </Text>
+      <Text className="text-sm text-neutral-500 dark:text-neutral-400">
+        {entry.service?.name ?? 'Service'}
+      </Text>
+      {buttonLabel && onButton ? (
+        <Pressable
+          onPress={onButton}
+          disabled={busy}
+          className="mt-3 rounded-xl bg-brand-600 px-4 py-2.5 active:bg-brand-700 disabled:opacity-50"
+        >
+          {busy ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text className="text-center text-sm font-semibold text-white">{buttonLabel}</Text>
+          )}
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
 
 export default function WasherHome() {
+  const user = useSessionStore((s) => s.user);
+  const washerId = user?.id ?? '';
+
+  const { data: myJobs } = useWasherBoard(washerId);
+  const { data: claimable } = useQueuedJobs();
+
+  const claimNext = useClaimNextJob();
+  const claim = useClaimJob();
+  const start = useStartJob();
+  const markDone = useMarkDone();
+  const approve = useApproveQuality();
+
+  const busy = claimNext.isPending || claim.isPending || start.isPending || markDone.isPending || approve.isPending;
+
+  const reportError = (error: unknown) =>
+    Alert.alert('Could not update job', error instanceof Error ? error.message : 'Something went wrong.');
+
+  const onClaimNext = () => {
+    claimNext
+      .mutateAsync(washerId)
+      .then((entry) =>
+        Alert.alert(entry ? `Claimed · ${entry.vehicle.plateNumber}` : 'Queue is clear', entry ? 'Job added to your list.' : 'No jobs waiting right now.'),
+      )
+      .catch(reportError);
+  };
+
+  const run =
+    <TVars,>(mutation: { mutateAsync: (vars: TVars) => Promise<unknown> }, vars: TVars, success: string) =>
+    () =>
+      mutation.mutateAsync(vars).then(() => Alert.alert('Done', success)).catch(reportError);
+
   return (
     <RoleGuard roles={['washer', 'manager', 'admin']}>
-      <PlaceholderScreen
-        badge="Washer"
-        title="Job Queue"
-        description="P0 skeleton. Claim Next, assignments, and job status flow land in P4."
-        header={<SessionHeader />}
-      />
+      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+        <SessionHeader />
+        <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, gap: 16 }}>
+          <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Job Queue</Text>
+
+          <Pressable
+            onPress={onClaimNext}
+            disabled={busy}
+            className="rounded-2xl bg-brand-600 px-4 py-4 active:bg-brand-700 disabled:opacity-50"
+          >
+            {claimNext.isPending ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text className="text-center text-lg font-bold text-white">Claim Next</Text>
+            )}
+          </Pressable>
+
+          <View>
+            <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+              My jobs · {(myJobs ?? []).length}
+            </Text>
+            {(myJobs ?? []).length === 0 ? (
+              <Text className="text-sm text-neutral-500 dark:text-neutral-400">
+                Nothing assigned yet. Claim a job to get started.
+              </Text>
+            ) : (
+              (myJobs ?? []).map((entry) => {
+                const actions: Record<string, { label: string; action: () => void }> = {
+                  assigned: {
+                    label: 'Start',
+                    action: run(start, { jobId: entry.job.id, washerId }, 'Job started.'),
+                  },
+                  in_progress: {
+                    label: 'Mark Done',
+                    action: run(markDone, { jobId: entry.job.id, washerId }, 'Sent to quality check.'),
+                  },
+                  quality_check: {
+                    label: 'Approve QC',
+                    action: run(approve, { jobId: entry.job.id, actorId: washerId }, 'Job completed.'),
+                  },
+                };
+                const action = actions[entry.job.status];
+                return (
+                  <View key={entry.job.id} className="mb-3">
+                    <JobCard entry={entry} buttonLabel={action?.label} onButton={action?.action} busy={busy} />
+                  </View>
+                );
+              })
+            )}
+          </View>
+
+          <View>
+            <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+              Up for grabs · {(claimable ?? []).length}
+            </Text>
+            {(claimable ?? []).length === 0 ? (
+              <Text className="text-sm text-neutral-500 dark:text-neutral-400">
+                Queue is clear. New check-ins will show up here.
+              </Text>
+            ) : (
+              (claimable ?? []).map((entry) => (
+                <View key={entry.job.id} className="mb-3">
+                  <JobCard
+                    entry={entry}
+                    buttonLabel="Claim"
+                    onButton={run(claim, { jobId: entry.job.id, washerId }, 'Job claimed.')}
+                    busy={busy}
+                  />
+                </View>
+              ))
+            )}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     </RoleGuard>
   );
 }

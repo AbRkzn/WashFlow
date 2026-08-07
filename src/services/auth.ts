@@ -1,10 +1,26 @@
 import type { Session, User } from '@supabase/supabase-js';
 
 import { supabase } from '@/api/supabase';
+import { db } from '@/data/db';
+import { UserRepository } from '@/data/repositories';
 import { type AppUser, type UserRole, USER_ROLES } from '@/domain/user';
 import { logAudit } from '@/services/audit';
 
 const FALLBACK_ROLE: UserRole = 'washer';
+const userRepository = new UserRepository(db);
+
+async function upsertLocalUser(user: AppUser): Promise<void> {
+  try {
+    await userRepository.upsert({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    });
+  } catch (error) {
+    console.warn('Local user upsert failed (non-fatal)', error);
+  }
+}
 
 export function isUserRole(value: string | undefined): value is UserRole {
   return value !== undefined && (USER_ROLES as readonly string[]).includes(value);
@@ -43,6 +59,7 @@ export async function signInWithPassword(email: string, password: string): Promi
     entity: 'session',
     details: { email: user.email },
   });
+  await upsertLocalUser(user);
   return user;
 }
 
@@ -60,5 +77,9 @@ export async function signOut(): Promise<void> {
 
 export async function getStoredUser(): Promise<AppUser | null> {
   const { data } = await supabase.auth.getSession();
-  return sessionToUser(data.session);
+  const user = sessionToUser(data.session);
+  if (user) {
+    await upsertLocalUser(user);
+  }
+  return user;
 }

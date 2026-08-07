@@ -1,9 +1,9 @@
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
 import { customers, jobs, services, vehicles, type Customer, type Job, type Service, type Vehicle } from '@/data/schema';
-import type { JobStatus } from '@/domain/job';
+import { type JobStatus, WORKING_STATUSES } from '@/domain/job';
 
 export interface NewJob {
   customerId: string;
@@ -21,6 +21,13 @@ export interface QueueEntry {
   customer: Customer;
   service: Service | null;
 }
+
+const JOB_SELECT = {
+  job: jobs,
+  vehicle: vehicles,
+  customer: customers,
+  service: services,
+} as const;
 
 export class JobRepository {
   constructor(private readonly db: Database) {}
@@ -57,14 +64,140 @@ export class JobRepository {
       .orderBy(asc(jobs.createdAt));
   }
 
+  async setStatus(id: string, status: JobStatus): Promise<boolean> {
+    const rows = await this.db
+      .update(jobs)
+      .set({ status, updatedAt: Date.now(), version: sql`${jobs.version} + 1` })
+      .where(and(eq(jobs.id, id), isNull(jobs.deletedAt)))
+      .returning({ id: jobs.id });
+    return rows.length > 0;
+  }
+
+  async transition(id: string, from: JobStatus[], to: JobStatus): Promise<boolean> {
+    const rows = await this.db
+      .update(jobs)
+      .set({ status: to, updatedAt: Date.now(), version: sql`${jobs.version} + 1` })
+      .where(and(eq(jobs.id, id), inArray(jobs.status, from), isNull(jobs.deletedAt)))
+      .returning({ id: jobs.id });
+    return rows.length > 0;
+  }
+
+  async claim(id: string, washerId: string): Promise<boolean> {
+    const rows = await this.db
+      .update(jobs)
+      .set({
+        status: 'assigned',
+        assignedTo: washerId,
+        updatedAt: Date.now(),
+        version: sql`${jobs.version} + 1`,
+      })
+      .where(
+        and(
+          eq(jobs.id, id),
+          eq(jobs.status, 'queued'),
+          isNull(jobs.assignedTo),
+          isNull(jobs.deletedAt),
+        ),
+      )
+      .returning({ id: jobs.id });
+    return rows.length > 0;
+  }
+
+  async assignTo(id: string, washerId: string): Promise<boolean> {
+    const rows = await this.db
+      .update(jobs)
+      .set({
+        status: 'assigned',
+        assignedTo: washerId,
+        updatedAt: Date.now(),
+        version: sql`${jobs.version} + 1`,
+      })
+      .where(
+        and(
+          eq(jobs.id, id),
+          eq(jobs.status, 'queued'),
+          isNull(jobs.deletedAt),
+        ),
+      )
+      .returning({ id: jobs.id });
+    return rows.length > 0;
+  }
+
+  async reassign(id: string, washerId: string): Promise<boolean> {
+    const rows = await this.db
+      .update(jobs)
+      .set({
+        assignedTo: washerId,
+        updatedAt: Date.now(),
+        version: sql`${jobs.version} + 1`,
+      })
+      .where(
+        and(
+          eq(jobs.id, id),
+          inArray(jobs.status, ['assigned', 'in_progress', 'quality_check']),
+          isNull(jobs.deletedAt),
+        ),
+      )
+      .returning({ id: jobs.id });
+    return rows.length > 0;
+  }
+
+  async release(id: string): Promise<boolean> {
+    const rows = await this.db
+      .update(jobs)
+      .set({
+        status: 'queued',
+        assignedTo: null,
+        updatedAt: Date.now(),
+        version: sql`${jobs.version} + 1`,
+      })
+      .where(
+        and(
+          eq(jobs.id, id),
+          inArray(jobs.status, ['assigned', 'in_progress']),
+          isNull(jobs.deletedAt),
+        ),
+      )
+      .returning({ id: jobs.id });
+    return rows.length > 0;
+  }
+
   async listQueuedWithDetails(): Promise<QueueEntry[]> {
     return this.db
-      .select({ job: jobs, vehicle: vehicles, customer: customers, service: services })
+      .select(JOB_SELECT)
       .from(jobs)
       .innerJoin(vehicles, eq(jobs.vehicleId, vehicles.id))
       .innerJoin(customers, eq(jobs.customerId, customers.id))
       .leftJoin(services, eq(jobs.serviceId, services.id))
       .where(and(eq(jobs.status, 'queued'), isNull(jobs.deletedAt)))
+      .orderBy(asc(jobs.createdAt));
+  }
+
+  async listForWasher(washerId: string): Promise<QueueEntry[]> {
+    return this.db
+      .select(JOB_SELECT)
+      .from(jobs)
+      .innerJoin(vehicles, eq(jobs.vehicleId, vehicles.id))
+      .innerJoin(customers, eq(jobs.customerId, customers.id))
+      .leftJoin(services, eq(jobs.serviceId, services.id))
+      .where(
+        and(
+          eq(jobs.assignedTo, washerId),
+          inArray(jobs.status, ['assigned', 'in_progress', 'quality_check']),
+          isNull(jobs.deletedAt),
+        ),
+      )
+      .orderBy(asc(jobs.createdAt));
+  }
+
+  async listWorkingWithDetails(): Promise<QueueEntry[]> {
+    return this.db
+      .select(JOB_SELECT)
+      .from(jobs)
+      .innerJoin(vehicles, eq(jobs.vehicleId, vehicles.id))
+      .innerJoin(customers, eq(jobs.customerId, customers.id))
+      .leftJoin(services, eq(jobs.serviceId, services.id))
+      .where(and(inArray(jobs.status, [...WORKING_STATUSES]), isNull(jobs.deletedAt)))
       .orderBy(asc(jobs.createdAt));
   }
 
