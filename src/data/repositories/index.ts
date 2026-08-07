@@ -3,6 +3,7 @@ export { CustomerRepository } from './customer-repository';
 export { JobRepository } from './job-repository';
 export { RecentPlateRepository } from './recent-plate-repository';
 export { ServiceRepository } from './service-repository';
+export { UserRepository } from './user-repository';
 export { VehicleRepository, normalizePlate } from './vehicle-repository';
 export type { NewAuditLog } from './audit-repository';
 export type { CustomerPatch, NewCustomer } from './customer-repository';

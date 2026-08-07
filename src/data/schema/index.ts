@@ -5,4 +5,5 @@ export * from './jobs';
 export * from './recent-plates';
 export * from './vehicles';
 export * from './services';
+export * from './users';
 export * from './relations';

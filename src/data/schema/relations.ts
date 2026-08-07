@@ -3,6 +3,7 @@ import { relations } from 'drizzle-orm';
 import { customers } from './customers';
 import { jobs } from './jobs';
 import { services } from './services';
+import { users } from './users';
 import { vehicles } from './vehicles';
 
 export const customerRelations = relations(customers, ({ many }) => ({
@@ -31,6 +32,14 @@ export const jobRelations = relations(jobs, ({ one }) => ({
     fields: [jobs.serviceId],
     references: [services.id],
   }),
+  assignedUser: one(users, {
+    fields: [jobs.assignedTo],
+    references: [users.id],
+  }),
+}));
+
+export const userRelations = relations(users, ({ many }) => ({
+  jobs: many(jobs),
 }));
 
 export const serviceRelations = relations(services, ({ many }) => ({

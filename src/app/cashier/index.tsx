@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { queueKeys, recentPlatesKeys, useActiveServices, useQueuedCount, useRecentPlates } from '@/data/queries';
+import { jobKeys, recentPlatesKeys, useActiveServices, useQueuedCount, useRecentPlates } from '@/data/queries';
 import { SessionHeader } from '@/components/session-header';
 import { checkIn, lookupByPlate, type VehicleMatch } from '@/services/checkin';
 import { formatPesos } from '@/utils/money';
@@ -81,8 +81,8 @@ export default function CashierCheckInScreen() {
       setCustomerPhone('');
       setSelectedServiceId(null);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queueKeys.queued }),
-        queryClient.invalidateQueries({ queryKey: queueKeys.queuedCount }),
+        queryClient.invalidateQueries({ queryKey: jobKeys.queued }),
+        queryClient.invalidateQueries({ queryKey: jobKeys.queuedCount }),
         queryClient.invalidateQueries({ queryKey: recentPlatesKeys.list }),
       ]);
       setTimeout(() => router.push('/cashier/queue'), 800);
