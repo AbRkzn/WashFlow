@@ -45,6 +45,15 @@ export default function CashierLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="appointments"
+        options={{
+          title: 'Bookings',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar-outline" size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

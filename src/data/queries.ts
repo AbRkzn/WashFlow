@@ -30,6 +30,13 @@ import {
   requestVoid,
   voidJob,
 } from '@/services/payments';
+import {
+  bookAppointment,
+  cancelAppointment,
+  checkInAppointment,
+  listDaySlots,
+} from '@/services/appointments';
+import { getSchedule } from '@/services/settings';
 
 export const jobKeys = {
   all: ['jobs'] as const,
@@ -64,6 +71,15 @@ export const paymentKeys = {
 export const voidRequestKeys = {
   all: ['void-requests'] as const,
   pending: ['void-requests', 'pending'] as const,
+};
+
+export const appointmentKeys = {
+  all: ['appointments'] as const,
+  day: (date: string) => ['appointments', 'day', date] as const,
+};
+
+export const scheduleKeys = {
+  current: ['schedule', 'current'] as const,
 };
 
 export function useQueuedJobs() {
@@ -280,6 +296,55 @@ export function useRejectVoidRequest() {
       rejectVoidRequest(input.requestId, input.managerId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: voidRequestKeys.pending });
+    },
+  });
+}
+
+export function useSchedule() {
+  return useQuery({
+    queryKey: scheduleKeys.current,
+    queryFn: getSchedule,
+  });
+}
+
+export function useDaySlots(date: string) {
+  return useQuery({
+    queryKey: appointmentKeys.day(date),
+    queryFn: () => listDaySlots(date),
+    enabled: Boolean(date),
+  });
+}
+
+export function useBookAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Parameters<typeof bookAppointment>[0]) => bookAppointment(input),
+    onSuccess: (_result, vars) => {
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.day(vars.date) });
+    },
+  });
+}
+
+export function useCancelAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { appointmentId: string; date: string; actorId: string }) =>
+      cancelAppointment(input.appointmentId, input.actorId),
+    onSuccess: (_void, vars) => {
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.day(vars.date) });
+    },
+  });
+}
+
+export function useCheckInAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { appointmentId: string; date: string; actorId: string }) =>
+      checkInAppointment(input.appointmentId, input.actorId),
+    onSuccess: (_appointment, vars) => {
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.day(vars.date) });
+      queryClient.invalidateQueries({ queryKey: jobKeys.all });
+      queryClient.invalidateQueries({ queryKey: jobKeys.queuedCount });
     },
   });
 }

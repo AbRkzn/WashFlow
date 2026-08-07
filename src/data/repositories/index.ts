@@ -1,3 +1,4 @@
+export { AppointmentRepository } from './appointment-repository';
 export { AuditLogRepository } from './audit-repository';
 export { CustomerRepository } from './customer-repository';
 export { JobRepository } from './job-repository';
@@ -5,9 +6,11 @@ export { PaymentRepository } from './payment-repository';
 export { PhotoRepository } from './photo-repository';
 export { RecentPlateRepository } from './recent-plate-repository';
 export { ServiceRepository } from './service-repository';
+export { SettingsRepository } from './settings-repository';
 export { UserRepository } from './user-repository';
 export { VehicleRepository, normalizePlate } from './vehicle-repository';
 export { VoidRequestRepository } from './void-request-repository';
+export type { AppointmentEntry, NewAppointment } from './appointment-repository';
 export type { NewAuditLog } from './audit-repository';
 export type { CustomerPatch, NewCustomer } from './customer-repository';
 export type { NewJob, QueueEntry } from './job-repository';
