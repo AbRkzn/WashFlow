@@ -53,32 +53,41 @@ export async function lookupByPlate(plate: string): Promise<VehicleMatch | null>
   return { vehicle, customer };
 }
 
-export async function checkIn(input: CheckInInput): Promise<CheckInResult> {
-  const plate = normalizePlate(input.plate);
-  if (!plate) {
+export async function resolveVehicleCustomer(
+  plate: string,
+  newCustomer?: {
+    name?: string;
+    phone?: string;
+  },
+): Promise<{ vehicle: Vehicle; customer: Customer }> {
+  const normalized = normalizePlate(plate);
+  if (!normalized) {
     throw new Error('Plate number is required.');
   }
-
-  let vehicle = await vehicleRepository.findByPlate(plate);
+  let vehicle = await vehicleRepository.findByPlate(normalized);
   let customer = vehicle?.customerId ? await customerRepository.findById(vehicle.customerId) : undefined;
-
   if (!vehicle) {
     if (!customer) {
       customer = await customerRepository.create({
-        name: input.newCustomer?.name?.trim() || GUEST_CUSTOMER_NAME,
-        phone: input.newCustomer?.phone?.trim() || null,
+        name: newCustomer?.name?.trim() || GUEST_CUSTOMER_NAME,
+        phone: newCustomer?.phone?.trim() || null,
       });
     }
-    vehicle = await vehicleRepository.create({ plateNumber: plate, customerId: customer.id });
+    vehicle = await vehicleRepository.create({ plateNumber: normalized, customerId: customer.id });
   }
+  if (!vehicle || !customer) {
+    throw new Error('Vehicle and customer could not be resolved.');
+  }
+  return { vehicle, customer };
+}
+
+export async function checkIn(input: CheckInInput): Promise<CheckInResult> {
+  const plate = normalizePlate(input.plate);
+  const { vehicle, customer } = await resolveVehicleCustomer(plate, input.newCustomer);
 
   const service = await serviceRepository.findById(input.serviceId);
   if (!service) {
     throw new Error('Selected service no longer exists.');
-  }
-
-  if (!customer || !vehicle) {
-    throw new Error('Vehicle and customer could not be resolved.');
   }
 
   const job = await jobRepository.create({

@@ -1,5 +1,6 @@
 import { relations } from 'drizzle-orm';
 
+import { appointments } from './appointments';
 import { customers } from './customers';
 import { jobs } from './jobs';
 import { payments } from './payments';
@@ -12,6 +13,7 @@ import { voidRequests } from './void-requests';
 export const customerRelations = relations(customers, ({ many }) => ({
   vehicles: many(vehicles),
   jobs: many(jobs),
+  appointments: many(appointments),
 }));
 
 export const vehicleRelations = relations(vehicles, ({ one, many }) => ({
@@ -20,6 +22,7 @@ export const vehicleRelations = relations(vehicles, ({ one, many }) => ({
     references: [customers.id],
   }),
   jobs: many(jobs),
+  appointments: many(appointments),
 }));
 
 export const jobRelations = relations(jobs, ({ one, many }) => ({
@@ -42,6 +45,25 @@ export const jobRelations = relations(jobs, ({ one, many }) => ({
   photos: many(photos),
   payments: many(payments),
   voidRequests: many(voidRequests),
+}));
+
+export const appointmentRelations = relations(appointments, ({ one }) => ({
+  vehicle: one(vehicles, {
+    fields: [appointments.vehicleId],
+    references: [vehicles.id],
+  }),
+  customer: one(customers, {
+    fields: [appointments.customerId],
+    references: [customers.id],
+  }),
+  service: one(services, {
+    fields: [appointments.serviceId],
+    references: [services.id],
+  }),
+  job: one(jobs, {
+    fields: [appointments.jobId],
+    references: [jobs.id],
+  }),
 }));
 
 export const userRelations = relations(users, ({ many }) => ({

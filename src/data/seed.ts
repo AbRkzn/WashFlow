@@ -1,12 +1,16 @@
 import type { Database } from './db';
 
 import {
+  AppointmentRepository,
   CustomerRepository,
   JobRepository,
   ServiceRepository,
+  SettingsRepository,
   UserRepository,
   VehicleRepository,
 } from './repositories';
+import { DEFAULT_SCHEDULE, SETTING_KEYS } from '@/domain/settings';
+import { toDateKey } from '@/domain/appointment';
 
 const defaultWashers = [
   { id: 'seed-washer-1', email: 'washer1@washflow.app', name: 'Washflow Washer 1', role: 'washer' as const },
@@ -90,6 +94,20 @@ export async function seedIfEmpty(db: Database): Promise<void> {
         status: 'completed',
       });
     }
+
+    const premium = (await services.listActive()).find((service) => service.name === 'Premium Detail');
+    if (premium) {
+      const today = toDateKey(Date.now());
+      const slotStart = new Date(`${today}T09:00:00`).getTime();
+      const appointmentsRepo = new AppointmentRepository(db);
+      await appointmentsRepo.create({
+        vehicleId: juanVehicle.id,
+        customerId: juan.id,
+        serviceId: premium.id,
+        date: today,
+        slotStart,
+      });
+    }
   }
 
   const users = new UserRepository(db);
@@ -97,5 +115,12 @@ export async function seedIfEmpty(db: Database): Promise<void> {
     for (const washer of defaultWashers) {
       await users.upsert(washer);
     }
+  }
+
+  const settings = new SettingsRepository(db);
+  if ((await settings.get(SETTING_KEYS.slotMinutes)) === null) {
+    await settings.set(SETTING_KEYS.businessOpenMinutes, String(DEFAULT_SCHEDULE.openMinutes));
+    await settings.set(SETTING_KEYS.businessCloseMinutes, String(DEFAULT_SCHEDULE.closeMinutes));
+    await settings.set(SETTING_KEYS.slotMinutes, String(DEFAULT_SCHEDULE.slotMinutes));
   }
 }
