@@ -4,7 +4,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RoleGuard } from '@/components/role-guard';
 import { SessionHeader } from '@/components/session-header';
-import { useForceAssign, useReassignJob, useReleaseJob, useWashers, useWorkingBoard } from '@/data/queries';
+import {
+  useApproveVoidRequest,
+  useForceAssign,
+  usePendingVoidRequests,
+  useReassignJob,
+  useRejectVoidRequest,
+  useReleaseJob,
+  useWashers,
+  useWorkingBoard,
+} from '@/data/queries';
 import type { WorkingEntry } from '@/services/jobs';
 import { JOB_STATUS_LABELS, type JobStatus, WORKING_STATUSES } from '@/domain/job';
 import { useSessionStore } from '@/stores/session-store';
@@ -68,16 +77,33 @@ function WasherPicker({
 export default function ManagerHome() {
   const actorId = useSessionStore((s) => s.user?.id ?? '');
   const { data: board } = useWorkingBoard();
+  const { data: pendingVoids = [] } = usePendingVoidRequests();
 
   const forceAssign = useForceAssign();
   const reassignJob = useReassignJob();
   const releaseJob = useReleaseJob();
+  const approveVoid = useApproveVoidRequest();
+  const rejectVoid = useRejectVoidRequest();
 
   const [picking, setPicking] = useState<PickTarget | null>(null);
   const busy = forceAssign.isPending || reassignJob.isPending || releaseJob.isPending;
 
   const reportError = (error: unknown) =>
     Alert.alert('Action failed', error instanceof Error ? error.message : 'Something went wrong.');
+
+  const onApproveVoid = (requestId: string) => {
+    approveVoid
+      .mutateAsync({ requestId, managerId: actorId })
+      .then(() => Alert.alert('Done', 'Void approved. Job voided.'))
+      .catch(reportError);
+  };
+
+  const onRejectVoid = (requestId: string) => {
+    rejectVoid
+      .mutateAsync({ requestId, managerId: actorId })
+      .then(() => Alert.alert('Done', 'Void request rejected.'))
+      .catch(reportError);
+  };
 
   const onPickWasher = (washerId: string) => {
     if (!picking) return;
@@ -188,6 +214,59 @@ export default function ManagerHome() {
               </View>
             ),
           )}
+
+          {pendingVoids.length > 0 ? (
+            <View className="mt-6">
+              <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-400 dark:text-red-500">
+                Void approvals · {pendingVoids.length}
+              </Text>
+              {pendingVoids.map((entry) => (
+                <View
+                  key={entry.request.id}
+                  className="mb-3 rounded-2xl border border-red-200 bg-white p-4 dark:border-red-900 dark:bg-neutral-900"
+                >
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-xl font-bold tracking-widest text-neutral-900 dark:text-white">
+                      {entry.vehicle.plateNumber}
+                    </Text>
+                    <Text className="text-sm text-neutral-400 dark:text-neutral-500">
+                      {formatClockTime(entry.request.createdAt)}
+                    </Text>
+                  </View>
+                  <Text className="mt-1 text-sm font-medium text-neutral-600 dark:text-neutral-300">
+                    {entry.customer.name} · {entry.service?.name ?? 'Service'} ·{' '}
+                    {formatPesos(entry.service?.priceCents ?? entry.job.priceCents)}
+                  </Text>
+                  <Text className="text-sm text-neutral-500 dark:text-neutral-400">
+                    Requested by {entry.requesterName ?? 'staff'}
+                  </Text>
+                  {entry.request.reason ? (
+                    <Text className="mt-2 rounded-lg bg-neutral-100 px-3 py-2 text-sm text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+                      {entry.request.reason}
+                    </Text>
+                  ) : null}
+                  <View className="mt-3 flex-row gap-2">
+                    <Pressable
+                      onPress={() => onApproveVoid(entry.request.id)}
+                      disabled={approveVoid.isPending || rejectVoid.isPending}
+                      className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 active:bg-red-700 disabled:opacity-50"
+                    >
+                      <Text className="text-center text-sm font-semibold text-white">Approve void</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => onRejectVoid(entry.request.id)}
+                      disabled={approveVoid.isPending || rejectVoid.isPending}
+                      className="flex-1 rounded-xl border border-neutral-300 px-4 py-2.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
+                    >
+                      <Text className="text-center text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                        Reject
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </ScrollView>
 
         <WasherPicker

@@ -56,6 +56,18 @@ export class JobRepository {
     return rows[0];
   }
 
+  async findByIdWithDetails(id: string): Promise<QueueEntry | undefined> {
+    const rows = await this.db
+      .select(JOB_SELECT)
+      .from(jobs)
+      .innerJoin(vehicles, eq(jobs.vehicleId, vehicles.id))
+      .innerJoin(customers, eq(jobs.customerId, customers.id))
+      .leftJoin(services, eq(jobs.serviceId, services.id))
+      .where(and(eq(jobs.id, id), isNull(jobs.deletedAt)))
+      .limit(1);
+    return rows[0];
+  }
+
   async listByStatus(status: JobStatus): Promise<Job[]> {
     return this.db
       .select()
@@ -170,6 +182,17 @@ export class JobRepository {
       .innerJoin(customers, eq(jobs.customerId, customers.id))
       .leftJoin(services, eq(jobs.serviceId, services.id))
       .where(and(eq(jobs.status, 'queued'), isNull(jobs.deletedAt)))
+      .orderBy(asc(jobs.createdAt));
+  }
+
+  async listCompletedWithDetails(): Promise<QueueEntry[]> {
+    return this.db
+      .select(JOB_SELECT)
+      .from(jobs)
+      .innerJoin(vehicles, eq(jobs.vehicleId, vehicles.id))
+      .innerJoin(customers, eq(jobs.customerId, customers.id))
+      .leftJoin(services, eq(jobs.serviceId, services.id))
+      .where(and(eq(jobs.status, 'completed'), isNull(jobs.deletedAt)))
       .orderBy(asc(jobs.createdAt));
   }
 

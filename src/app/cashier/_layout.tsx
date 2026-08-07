@@ -36,6 +36,15 @@ export default function CashierLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="list-outline" size={size} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="collect"
+        options={{
+          title: 'Collect',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="cash-outline" size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

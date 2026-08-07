@@ -1,6 +1,12 @@
 import type { Database } from './db';
 
-import { CustomerRepository, ServiceRepository, UserRepository, VehicleRepository } from './repositories';
+import {
+  CustomerRepository,
+  JobRepository,
+  ServiceRepository,
+  UserRepository,
+  VehicleRepository,
+} from './repositories';
 
 const defaultWashers = [
   { id: 'seed-washer-1', email: 'washer1@washflow.app', name: 'Washflow Washer 1', role: 'washer' as const },
@@ -44,7 +50,7 @@ export async function seedIfEmpty(db: Database): Promise<void> {
     const vehicles = new VehicleRepository(db);
 
     const juan = await customers.create({ name: 'Juan Dela Cruz', phone: '09171234567' });
-    await vehicles.create({
+    const juanVehicle = await vehicles.create({
       plateNumber: 'ABC-1234',
       customerId: juan.id,
       make: 'Toyota',
@@ -72,6 +78,18 @@ export async function seedIfEmpty(db: Database): Promise<void> {
       color: 'Gray',
       year: 2020,
     });
+
+    const express = (await services.listActive()).find((service) => service.name === 'Express Wash');
+    if (express) {
+      const jobs = new JobRepository(db);
+      await jobs.create({
+        customerId: juan.id,
+        vehicleId: juanVehicle.id,
+        serviceId: express.id,
+        priceCents: express.priceCents,
+        status: 'completed',
+      });
+    }
   }
 
   const users = new UserRepository(db);
