@@ -3,9 +3,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RoleGuard } from '@/components/role-guard';
 import { SessionHeader } from '@/components/session-header';
-import { useClaimJob, useClaimNextJob, useMarkDone, useQueuedJobs, useStartJob, useApproveQuality, useWasherBoard } from '@/data/queries';
+import {
+  useAddJobPhoto,
+  useApproveQuality,
+  useClaimJob,
+  useClaimNextJob,
+  useJobPhotos,
+  useMarkDone,
+  useQueuedJobs,
+  useStartJob,
+  useWasherBoard,
+} from '@/data/queries';
 import type { QueueEntry } from '@/data/repositories';
+import type { PhotoKind } from '@/data/schema';
 import { JOB_STATUS_LABELS, type JobStatus } from '@/domain/job';
+import { capturePhoto, pickPhotoFromLibrary } from '@/services/camera';
 import { useSessionStore } from '@/stores/session-store';
 
 const STATUS_CHIP: Record<JobStatus, string> = {
@@ -23,12 +35,22 @@ function JobCard({
   buttonLabel,
   onButton,
   busy,
+  enablePhotos,
+  onAddPhoto,
+  photoBusy,
 }: {
   entry: QueueEntry;
   buttonLabel?: string;
   onButton?: () => void;
   busy?: boolean;
+  enablePhotos?: boolean;
+  onAddPhoto?: (kind: PhotoKind) => void;
+  photoBusy?: boolean;
 }) {
+  const { data: photos } = useJobPhotos(enablePhotos ? entry.job.id : '');
+  const beforeCount = photos?.filter((photo) => photo.kind === 'before').length ?? 0;
+  const afterCount = photos?.filter((photo) => photo.kind === 'after').length ?? 0;
+
   return (
     <View className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
       <View className="flex-row items-center justify-between">
@@ -47,6 +69,30 @@ function JobCard({
       <Text className="text-sm text-neutral-500 dark:text-neutral-400">
         {entry.service?.name ?? 'Service'}
       </Text>
+
+      {enablePhotos && onAddPhoto ? (
+        <View className="mt-3 flex-row gap-2">
+          <Pressable
+            onPress={() => onAddPhoto('before')}
+            disabled={photoBusy || beforeCount >= 2}
+            className="flex-1 rounded-xl border border-neutral-300 px-4 py-2 active:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:active:bg-neutral-800"
+          >
+            <Text className="text-center text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+              Before · {beforeCount}/2
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => onAddPhoto('after')}
+            disabled={photoBusy || afterCount >= 2}
+            className="flex-1 rounded-xl border border-neutral-300 px-4 py-2 active:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:active:bg-neutral-800"
+          >
+            <Text className="text-center text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+              After · {afterCount}/2
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       {buttonLabel && onButton ? (
         <Pressable
           onPress={onButton}
@@ -76,8 +122,15 @@ export default function WasherHome() {
   const start = useStartJob();
   const markDone = useMarkDone();
   const approve = useApproveQuality();
+  const addPhoto = useAddJobPhoto();
 
-  const busy = claimNext.isPending || claim.isPending || start.isPending || markDone.isPending || approve.isPending;
+  const busy =
+    claimNext.isPending ||
+    claim.isPending ||
+    start.isPending ||
+    markDone.isPending ||
+    approve.isPending ||
+    addPhoto.isPending;
 
   const reportError = (error: unknown) =>
     Alert.alert('Could not update job', error instanceof Error ? error.message : 'Something went wrong.');
@@ -86,7 +139,10 @@ export default function WasherHome() {
     claimNext
       .mutateAsync(washerId)
       .then((entry) =>
-        Alert.alert(entry ? `Claimed · ${entry.vehicle.plateNumber}` : 'Queue is clear', entry ? 'Job added to your list.' : 'No jobs waiting right now.'),
+        Alert.alert(
+          entry ? `Claimed · ${entry.vehicle.plateNumber}` : 'Queue is clear',
+          entry ? 'Job added to your list.' : 'No jobs waiting right now.',
+        ),
       )
       .catch(reportError);
   };
@@ -95,6 +151,36 @@ export default function WasherHome() {
     <TVars,>(mutation: { mutateAsync: (vars: TVars) => Promise<unknown> }, vars: TVars, success: string) =>
     () =>
       mutation.mutateAsync(vars).then(() => Alert.alert('Done', success)).catch(reportError);
+
+  const onAddPhoto = (jobId: string, kind: PhotoKind) => {
+    Alert.alert(`Add ${kind} photo`, undefined, [
+      {
+        text: 'Take photo',
+        onPress: () => {
+          capturePhoto()
+            .then((uri) => {
+              if (!uri) return;
+              return addPhoto.mutateAsync({ jobId, kind, uri });
+            })
+            .then(() => Alert.alert('Done', `${kind} photo added.`))
+            .catch(reportError);
+        },
+      },
+      {
+        text: 'Choose from library',
+        onPress: () => {
+          pickPhotoFromLibrary()
+            .then((uri) => {
+              if (!uri) return;
+              return addPhoto.mutateAsync({ jobId, kind, uri });
+            })
+            .then(() => Alert.alert('Done', `${kind} photo added.`))
+            .catch(reportError);
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
 
   return (
     <RoleGuard roles={['washer', 'manager', 'admin']}>
@@ -142,7 +228,15 @@ export default function WasherHome() {
                 const action = actions[entry.job.status];
                 return (
                   <View key={entry.job.id} className="mb-3">
-                    <JobCard entry={entry} buttonLabel={action?.label} onButton={action?.action} busy={busy} />
+                    <JobCard
+                      entry={entry}
+                      buttonLabel={action?.label}
+                      onButton={action?.action}
+                      busy={busy}
+                      enablePhotos={entry.job.status === 'assigned' || entry.job.status === 'in_progress'}
+                      onAddPhoto={(kind) => onAddPhoto(entry.job.id, kind)}
+                      photoBusy={addPhoto.isPending}
+                    />
                   </View>
                 );
               })

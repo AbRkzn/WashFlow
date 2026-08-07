@@ -1,6 +1,7 @@
 export { AuditLogRepository } from './audit-repository';
 export { CustomerRepository } from './customer-repository';
 export { JobRepository } from './job-repository';
+export { PhotoRepository } from './photo-repository';
 export { RecentPlateRepository } from './recent-plate-repository';
 export { ServiceRepository } from './service-repository';
 export { UserRepository } from './user-repository';

@@ -2,6 +2,7 @@ export * from './audit-log';
 export * from './common';
 export * from './customers';
 export * from './jobs';
+export * from './photos';
 export * from './recent-plates';
 export * from './vehicles';
 export * from './services';

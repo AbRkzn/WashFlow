@@ -38,6 +38,15 @@ export class VehicleRepository {
     return rows[0];
   }
 
+  async findById(id: string): Promise<Vehicle | undefined> {
+    const rows = await this.db
+      .select()
+      .from(vehicles)
+      .where(and(eq(vehicles.id, id), isNull(vehicles.deletedAt)))
+      .limit(1);
+    return rows[0];
+  }
+
   async searchByPlate(term: string): Promise<Vehicle[]> {
     const normalized = normalizePlate(term);
     return this.db

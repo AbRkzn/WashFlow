@@ -9,6 +9,7 @@ import { Text, View } from 'react-native';
 
 import { db, initDatabase } from '@/data/db';
 import { seedIfEmpty } from '@/data/seed';
+import { configureNotifications } from '@/services/notifications';
 import { useSessionStore } from '@/stores/session-store';
 
 const queryClient = new QueryClient();
@@ -38,6 +39,11 @@ export default function RootLayout() {
           setDatabaseError(true);
         }
         return;
+      }
+      try {
+        await configureNotifications();
+      } catch (error) {
+        console.warn('Notification setup failed (non-fatal)', error);
       }
       await useSessionStore.getState().hydrate();
     })();

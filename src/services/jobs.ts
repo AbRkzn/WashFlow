@@ -1,17 +1,18 @@
 import { db } from '@/data/db';
-import { JobRepository, UserRepository, type QueueEntry } from '@/data/repositories';
+import { JobRepository, UserRepository, VehicleRepository, type QueueEntry } from '@/data/repositories';
 import type { User } from '@/data/schema';
 import { logAudit } from '@/services/audit';
+import { notifyJobAssigned } from '@/services/notifications';
 
 const jobRepository = new JobRepository(db);
 const userRepository = new UserRepository(db);
+const vehicleRepository = new VehicleRepository(db);
 
 export interface WorkingEntry extends QueueEntry {
   assignedName: string | null;
 }
 
-async function loadAssignedNames(entries: QueueEntry[]): Promise<WorkingEntry[]> {
-  const ids = [...new Set(entries.map((e) => e.job.assignedTo).filter((id): id is string => Boolean(id)))];
+async function loadAssignedNames(entries: QueueEntry[]): Promise<WorkingEntry[]> {  const ids = [...new Set(entries.map((e) => e.job.assignedTo).filter((id): id is string => Boolean(id)))];
   if (ids.length === 0) {
     return entries.map((e) => ({ ...e, assignedName: null }));
   }
@@ -21,6 +22,19 @@ async function loadAssignedNames(entries: QueueEntry[]): Promise<WorkingEntry[]>
     ...e,
     assignedName: e.job.assignedTo ? (nameById.get(e.job.assignedTo) ?? null) : null,
   }));
+}
+
+async function notifyAssignment(jobId: string, washerId: string): Promise<void> {
+  try {
+    const job = await jobRepository.findById(jobId);
+    if (!job?.vehicleId) return;
+    const vehicle = await vehicleRepository.findById(job.vehicleId);
+    if (!vehicle) return;
+    const washer = await userRepository.findById(washerId);
+    await notifyJobAssigned(vehicle.plateNumber, washer?.name ?? 'washer');
+  } catch (error) {
+    console.warn('Assignment notification failed (non-fatal)', error);
+  }
 }
 
 export async function listWashers(): Promise<User[]> {
@@ -93,6 +107,7 @@ export async function forceAssign(jobId: string, washerId: string, actorId: stri
     entityId: jobId,
     details: { assignedTo: washerId },
   });
+  await notifyAssignment(jobId, washerId);
 }
 
 export async function reassignJob(jobId: string, washerId: string, actorId: string): Promise<void> {
@@ -107,6 +122,7 @@ export async function reassignJob(jobId: string, washerId: string, actorId: stri
     entityId: jobId,
     details: { assignedTo: washerId },
   });
+  await notifyAssignment(jobId, washerId);
 }
 
 export async function releaseJob(jobId: string, actorId: string): Promise<void> {

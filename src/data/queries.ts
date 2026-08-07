@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import type { PhotoKind } from '@/data/schema';
+import { addJobPhoto, listJobPhotos } from '@/services/photos';
 import {
   approveQuality,
   claimJob,
@@ -39,6 +41,11 @@ export const recentPlatesKeys = {
 export const userKeys = {
   all: ['users'] as const,
   washers: ['users', 'washers'] as const,
+};
+
+export const photoKeys = {
+  all: ['photos'] as const,
+  job: (jobId: string) => ['photos', 'job', jobId] as const,
 };
 
 export function useQueuedJobs() {
@@ -88,6 +95,25 @@ export function useWashers() {
   return useQuery({
     queryKey: userKeys.washers,
     queryFn: listWashers,
+  });
+}
+
+export function useJobPhotos(jobId: string) {
+  return useQuery({
+    queryKey: photoKeys.job(jobId),
+    queryFn: () => listJobPhotos(jobId),
+    enabled: Boolean(jobId),
+  });
+}
+
+export function useAddJobPhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { jobId: string; kind: PhotoKind; uri: string }) =>
+      addJobPhoto(input.jobId, input.kind, input.uri),
+    onSuccess: (_photo, vars) => {
+      queryClient.invalidateQueries({ queryKey: photoKeys.job(vars.jobId) });
+    },
   });
 }
 
