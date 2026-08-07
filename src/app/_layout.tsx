@@ -9,26 +9,38 @@ import { Text, View } from 'react-native';
 
 import { db, initDatabase } from '@/data/db';
 import { seedIfEmpty } from '@/data/seed';
+import { useSessionStore } from '@/stores/session-store';
 
 const queryClient = new QueryClient();
 
 export default function RootLayout() {
   const { colorScheme } = useColorScheme();
   const [databaseReady, setDatabaseReady] = useState(false);
+  const [databaseError, setDatabaseError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    initDatabase()
-      .then(async () => {
+    (async () => {
+      try {
+        await initDatabase();
         if (cancelled) return;
         if (__DEV__) {
-          await seedIfEmpty(db);
+          try {
+            await seedIfEmpty(db);
+          } catch (error) {
+            console.warn('Seed failed (non-fatal)', error);
+          }
         }
         setDatabaseReady(true);
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error('Database init failed', error);
-      });
+        if (!cancelled) {
+          setDatabaseError(true);
+        }
+        return;
+      }
+      await useSessionStore.getState().hydrate();
+    })();
     return () => {
       cancelled = true;
     };
@@ -38,10 +50,23 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <StatusBar style="auto" />
-        {databaseReady ? (
+        {databaseError ? (
+          <View className="flex-1 items-center justify-center bg-neutral-50 px-8 dark:bg-neutral-950">
+            <Text className="text-lg font-semibold text-red-600 dark:text-red-400">
+              Database initialization failed
+            </Text>
+            <Text className="mt-2 text-center text-sm text-neutral-500 dark:text-neutral-400">
+              Restart the app. If it persists, clear the app data and reload.
+            </Text>
+          </View>
+        ) : databaseReady ? (
           <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
             <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(app)" />
+            <Stack.Screen name="admin" />
+            <Stack.Screen name="manager" />
+            <Stack.Screen name="cashier" />
+            <Stack.Screen name="washer" />
           </Stack>
         ) : (
           <View className="flex-1 items-center justify-center bg-neutral-50 dark:bg-neutral-950">

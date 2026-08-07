@@ -1,10 +1,11 @@
 import { Redirect } from 'expo-router';
 import type { PropsWithChildren } from 'react';
 
-import { useSessionStore, type Role } from '@/stores/session-store';
+import type { UserRole } from '@/domain/user';
+import { useSessionStore } from '@/stores/session-store';
 
 interface RoleGuardProps extends PropsWithChildren {
-  roles: Role[];
+  roles: UserRole[];
 }
 
 export function RoleGuard({ roles, children }: RoleGuardProps) {
