@@ -39,8 +39,10 @@ import {
 import { getSchedule } from '@/services/settings';
 import { adjustStock, createInventoryItem, deleteInventoryItem, listInventory, listLowStockItems, listStockMovements, updateInventoryItem } from '@/services/inventory';
 import { listDayExpenses, logExpense } from '@/services/expenses';
+import { countPendingConflicts, listPendingConflicts, resolveConflict } from '@/services/conflicts';
 import type { AdjustmentType } from '@/domain/inventory';
 import type { ExpenseCategory } from '@/domain/expense';
+import type { ConflictResolution } from '@/domain/conflict';
 
 export const jobKeys = {
   all: ['jobs'] as const,
@@ -75,6 +77,12 @@ export const paymentKeys = {
 export const voidRequestKeys = {
   all: ['void-requests'] as const,
   pending: ['void-requests', 'pending'] as const,
+};
+
+export const conflictKeys = {
+  all: ['conflicts'] as const,
+  pending: ['conflicts', 'pending'] as const,
+  pendingCount: ['conflicts', 'pending', 'count'] as const,
 };
 
 export const appointmentKeys = {
@@ -312,6 +320,31 @@ export function useRejectVoidRequest() {
       rejectVoidRequest(input.requestId, input.managerId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: voidRequestKeys.pending });
+    },
+  });
+}
+
+export function usePendingConflicts() {
+  return useQuery({
+    queryKey: conflictKeys.pending,
+    queryFn: listPendingConflicts,
+  });
+}
+
+export function useCountPendingConflicts() {
+  return useQuery({
+    queryKey: conflictKeys.pendingCount,
+    queryFn: countPendingConflicts,
+  });
+}
+
+export function useResolveConflict() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { conflictId: string; resolution: ConflictResolution; managerId: string }) =>
+      resolveConflict(input.conflictId, input.resolution, input.managerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries();
     },
   });
 }

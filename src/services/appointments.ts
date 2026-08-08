@@ -106,6 +106,41 @@ export async function cancelAppointment(appointmentId: string, actorId: string):
   await logAudit({ actorId, action: 'appointment-cancelled', entity: 'appointment', entityId: appointmentId });
 }
 
+/**
+ * Auto-reflow used when the server rejects a booked slot (`slot_taken`,
+ * first-write-wins). Moves the appointment to the next free slot for the same
+ * day and flags it "Rescheduled by system". Returns null when nothing moved.
+ */
+export async function reflowAppointmentOnConflict(appointmentId: string): Promise<Appointment | null> {
+  const entry = await appointmentRepository.findByIdWithDetails(appointmentId);
+  if (!entry || entry.appointment.status !== 'booked') {
+    return null;
+  }
+  const schedule = await getSchedule();
+  const { date, slotStart } = entry.appointment;
+  const next = await appointmentRepository.nextAvailableSlot(
+    date,
+    slotStart,
+    schedule.slotMinutes,
+    schedule.closeMinutes,
+  );
+  if (!next) {
+    return null;
+  }
+  const moved = await appointmentRepository.moveSlot(appointmentId, next, slotStart);
+  if (!moved) {
+    return null;
+  }
+  await logAudit({
+    actorId: entry.customer.id,
+    action: 'appointment-sync-reflowed',
+    entity: 'appointment',
+    entityId: appointmentId,
+    details: { from: slotStart, to: next },
+  });
+  return entry.appointment;
+}
+
 export async function checkInAppointment(
   appointmentId: string,
   actorId: string,

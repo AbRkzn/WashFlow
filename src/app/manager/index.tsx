@@ -7,15 +7,20 @@ import { SessionHeader } from '@/components/session-header';
 import {
   useApproveVoidRequest,
   useForceAssign,
+  usePendingConflicts,
   usePendingVoidRequests,
   useReassignJob,
   useRejectVoidRequest,
   useReleaseJob,
+  useResolveConflict,
   useWashers,
   useWorkingBoard,
 } from '@/data/queries';
 import type { WorkingEntry } from '@/services/jobs';
+import { parseConflictRow } from '@/services/conflicts';
 import { JOB_STATUS_LABELS, type JobStatus, WORKING_STATUSES } from '@/domain/job';
+import { CONFLICT_KIND_LABELS } from '@/domain/conflict';
+import type { ConflictReviewEntry } from '@/data/repositories';
 import { useSessionStore } from '@/stores/session-store';
 import { formatPesos } from '@/utils/money';
 import { formatClockTime } from '@/utils/time';
@@ -74,18 +79,102 @@ function WasherPicker({
   );
 }
 
+const IGNORED_COLUMNS = new Set([
+  'id',
+  'version',
+  'server_seq',
+  'origin_device',
+  'created_at',
+  'updated_at',
+  'deleted_at',
+]);
+
+function RowValue({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="mb-2 rounded-lg bg-neutral-100 px-3 py-2 dark:bg-neutral-800">
+      <Text className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+        {label}
+      </Text>
+      <Text className="mt-0.5 text-sm text-neutral-800 dark:text-neutral-100">{value}</Text>
+    </View>
+  );
+}
+
+function ConflictDetailModal({
+  entry,
+  onClose,
+}: {
+  entry: ConflictReviewEntry | null;
+  onClose: () => void;
+}) {
+  const local = entry ? parseConflictRow(entry.conflict.localRow) : null;
+  const remote = entry ? parseConflictRow(entry.conflict.remoteRow) : null;
+
+  const renderRow = (row: Record<string, unknown> | null) =>
+    row ? (
+      Object.entries(row)
+        .filter(([key]) => !IGNORED_COLUMNS.has(key))
+        .map(([key, value]) => (
+          <RowValue key={key} label={key.replaceAll('_', ' ')} value={String(value)} />
+        ))
+    ) : (
+      <Text className="text-sm italic text-neutral-500 dark:text-neutral-400">Not available</Text>
+    );
+
+  return (
+    <Modal visible={entry !== null} animationType="slide" transparent onRequestClose={onClose}>
+      <Pressable className="flex-1 justify-end bg-black/40" onPress={onClose}>
+        <Pressable className="max-h-[85%] rounded-t-3xl bg-white p-5 dark:bg-neutral-900">
+          <Text className="text-lg font-bold text-neutral-900 dark:text-white">
+            {entry ? CONFLICT_KIND_LABELS[entry.conflict.kind] : ''}
+          </Text>
+          {entry?.conflict.description ? (
+            <Text className="mb-3 mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+              {entry.conflict.description}
+            </Text>
+          ) : null}
+          {entry?.payment ? (
+            <RowValue label="Payment amount" value={formatPesos(entry.payment.amountCents)} />
+          ) : null}
+          <ScrollView className="mt-3">
+            <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+              Local version
+            </Text>
+            {renderRow(local)}
+            <Text className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+              Remote (server) version
+            </Text>
+            {renderRow(remote)}
+          </ScrollView>
+          <Pressable
+            onPress={onClose}
+            className="mt-4 rounded-xl border border-neutral-300 px-4 py-2.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
+          >
+            <Text className="text-center text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+              Close
+            </Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 export default function ManagerHome() {
   const actorId = useSessionStore((s) => s.user?.id ?? '');
   const { data: board } = useWorkingBoard();
   const { data: pendingVoids = [] } = usePendingVoidRequests();
+  const { data: pendingConflicts = [] } = usePendingConflicts();
 
   const forceAssign = useForceAssign();
   const reassignJob = useReassignJob();
   const releaseJob = useReleaseJob();
   const approveVoid = useApproveVoidRequest();
   const rejectVoid = useRejectVoidRequest();
+  const resolveConflict = useResolveConflict();
 
   const [picking, setPicking] = useState<PickTarget | null>(null);
+  const [detailConflict, setDetailConflict] = useState<ConflictReviewEntry | null>(null);
   const busy = forceAssign.isPending || reassignJob.isPending || releaseJob.isPending;
 
   const reportError = (error: unknown) =>
@@ -127,6 +216,33 @@ export default function ManagerHome() {
       .mutateAsync({ jobId, actorId })
       .then(() => Alert.alert('Done', 'Job released back to the queue.'))
       .catch(reportError);
+  };
+
+  const onResolveConflict = (conflictId: string, resolution: 'approved' | 'rejected') => {
+    const apply = () =>
+      resolveConflict
+        .mutateAsync({ conflictId, resolution, managerId: actorId })
+        .then(() =>
+          Alert.alert(
+            'Done',
+            resolution === 'approved' ? 'Remote version kept.' : 'Local version kept.',
+          ),
+        )
+        .catch(reportError);
+
+    if (resolution === 'approved') {
+      Alert.alert(
+        'Keep remote version?',
+        'The server version will overwrite the local data and the queued local change will be dropped.',
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Keep remote', style: 'destructive', onPress: apply }],
+      );
+    } else {
+      Alert.alert(
+        'Keep local version?',
+        'The local change stays queued and will overwrite the server on the next sync.',
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Keep local', onPress: apply }],
+      );
+    }
   };
 
   const sections = WORKING_STATUSES.map((status: JobStatus) => ({
@@ -267,7 +383,68 @@ export default function ManagerHome() {
               ))}
             </View>
           ) : null}
+
+          {pendingConflicts.length > 0 ? (
+            <View className="mt-6">
+              <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-500">
+                Sync conflicts · {pendingConflicts.length}
+              </Text>
+              {pendingConflicts.map((entry) => (
+                <View
+                  key={entry.conflict.id}
+                  className="mb-3 rounded-2xl border border-amber-300 bg-white p-4 dark:border-amber-900 dark:bg-neutral-900"
+                >
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-base font-bold text-neutral-900 dark:text-white">
+                      {CONFLICT_KIND_LABELS[entry.conflict.kind]}
+                    </Text>
+                    <Text className="text-sm text-neutral-400 dark:text-neutral-500">
+                      {formatClockTime(entry.conflict.createdAt)}
+                    </Text>
+                  </View>
+                  {entry.payment ? (
+                    <Text className="mt-1 text-sm font-medium text-neutral-600 dark:text-neutral-300">
+                      Payment of {formatPesos(entry.payment.amountCents)}
+                    </Text>
+                  ) : null}
+                  {entry.conflict.description ? (
+                    <Text className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                      {entry.conflict.description}
+                    </Text>
+                  ) : null}
+                  <View className="mt-3 flex-row gap-2">
+                    <Pressable
+                      onPress={() => setDetailConflict(entry)}
+                      className="rounded-xl border border-neutral-300 px-4 py-2.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
+                    >
+                      <Text className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                        Details
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => onResolveConflict(entry.conflict.id, 'approved')}
+                      disabled={resolveConflict.isPending}
+                      className="flex-1 rounded-xl bg-amber-600 px-4 py-2.5 active:bg-amber-700 disabled:opacity-50"
+                    >
+                      <Text className="text-center text-sm font-semibold text-white">Keep remote</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => onResolveConflict(entry.conflict.id, 'rejected')}
+                      disabled={resolveConflict.isPending}
+                      className="flex-1 rounded-xl border border-neutral-300 px-4 py-2.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
+                    >
+                      <Text className="text-center text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                        Keep local
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </ScrollView>
+
+        <ConflictDetailModal entry={detailConflict} onClose={() => setDetailConflict(null)} />
 
         <WasherPicker
           visible={picking !== null}
