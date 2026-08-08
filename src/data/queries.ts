@@ -37,6 +37,10 @@ import {
   listDaySlots,
 } from '@/services/appointments';
 import { getSchedule } from '@/services/settings';
+import { adjustStock, createInventoryItem, deleteInventoryItem, listInventory, listLowStockItems, listStockMovements, updateInventoryItem } from '@/services/inventory';
+import { listDayExpenses, logExpense } from '@/services/expenses';
+import type { AdjustmentType } from '@/domain/inventory';
+import type { ExpenseCategory } from '@/domain/expense';
 
 export const jobKeys = {
   all: ['jobs'] as const,
@@ -80,6 +84,18 @@ export const appointmentKeys = {
 
 export const scheduleKeys = {
   current: ['schedule', 'current'] as const,
+};
+
+export const inventoryKeys = {
+  all: ['inventory'] as const,
+  list: ['inventory', 'list'] as const,
+  lowStock: ['inventory', 'low-stock'] as const,
+  movements: ['inventory', 'movements'] as const,
+};
+
+export const expenseKeys = {
+  all: ['expenses'] as const,
+  day: (day: string) => ['expenses', 'day', day] as const,
 };
 
 export function useQueuedJobs() {
@@ -345,6 +361,96 @@ export function useCheckInAppointment() {
       queryClient.invalidateQueries({ queryKey: appointmentKeys.day(vars.date) });
       queryClient.invalidateQueries({ queryKey: jobKeys.all });
       queryClient.invalidateQueries({ queryKey: jobKeys.queuedCount });
+    },
+  });
+}
+
+export function useInventory() {
+  return useQuery({
+    queryKey: inventoryKeys.list,
+    queryFn: listInventory,
+  });
+}
+
+export function useLowStockItems() {
+  return useQuery({
+    queryKey: inventoryKeys.lowStock,
+    queryFn: listLowStockItems,
+  });
+}
+
+export function useStockMovements() {
+  return useQuery({
+    queryKey: inventoryKeys.movements,
+    queryFn: listStockMovements,
+  });
+}
+
+function useInvalidateInventory() {
+  const queryClient = useQueryClient();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: inventoryKeys.all });
+  };
+}
+
+export function useCreateInventoryItem() {
+  const invalidate = useInvalidateInventory();
+  return useMutation({
+    mutationFn: (input: { values: Parameters<typeof createInventoryItem>[0]; actorId: string }) =>
+      createInventoryItem(input.values, input.actorId),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateInventoryItem() {
+  const invalidate = useInvalidateInventory();
+  return useMutation({
+    mutationFn: (input: {
+      itemId: string;
+      patch: Parameters<typeof updateInventoryItem>[1];
+      actorId: string;
+    }) => updateInventoryItem(input.itemId, input.patch, input.actorId),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteInventoryItem() {
+  const invalidate = useInvalidateInventory();
+  return useMutation({
+    mutationFn: (input: { itemId: string; actorId: string }) =>
+      deleteInventoryItem(input.itemId, input.actorId),
+    onSuccess: invalidate,
+  });
+}
+
+export function useAdjustStock() {
+  const invalidate = useInvalidateInventory();
+  return useMutation({
+    mutationFn: (input: {
+      itemId: string;
+      changeQty: number;
+      type: AdjustmentType;
+      actorId: string;
+      reason?: string;
+    }) => adjustStock(input.itemId, input.changeQty, input.type, input.actorId, input.reason),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDayExpenses(timestamp: number) {
+  return useQuery({
+    queryKey: expenseKeys.day(String(timestamp)),
+    queryFn: () => listDayExpenses(timestamp),
+  });
+}
+
+export function useLogExpense() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { values: { amountCents: number; category: ExpenseCategory; description?: string | null; incurredAt?: number }; actorId: string }) =>
+      logExpense(input.values, input.actorId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: expenseKeys.all });
     },
   });
 }

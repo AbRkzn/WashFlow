@@ -3,6 +3,8 @@ import type { Database } from './db';
 import {
   AppointmentRepository,
   CustomerRepository,
+  ExpenseRepository,
+  InventoryRepository,
   JobRepository,
   ServiceRepository,
   SettingsRepository,
@@ -38,6 +40,37 @@ const defaultServices = [
     priceCents: 79900,
     durationMinutes: 60,
     sortOrder: 3,
+  },
+];
+
+const defaultInventoryItems = [
+  {
+    name: 'Car shampoo',
+    category: 'cleaning' as const,
+    unit: 'L',
+    quantity: 6,
+    lowStockThreshold: 2,
+  },
+  {
+    name: 'Microfiber towels',
+    category: 'supplies' as const,
+    unit: 'pc',
+    quantity: 24,
+    lowStockThreshold: 10,
+  },
+  {
+    name: 'Glass cleaner',
+    category: 'chemicals' as const,
+    unit: 'bottle',
+    quantity: 1,
+    lowStockThreshold: 2,
+  },
+  {
+    name: 'Interior protectant',
+    category: 'chemicals' as const,
+    unit: 'bottle',
+    quantity: 4,
+    lowStockThreshold: 2,
   },
 ];
 
@@ -122,5 +155,23 @@ export async function seedIfEmpty(db: Database): Promise<void> {
     await settings.set(SETTING_KEYS.businessOpenMinutes, String(DEFAULT_SCHEDULE.openMinutes));
     await settings.set(SETTING_KEYS.businessCloseMinutes, String(DEFAULT_SCHEDULE.closeMinutes));
     await settings.set(SETTING_KEYS.slotMinutes, String(DEFAULT_SCHEDULE.slotMinutes));
+  }
+
+  const inventory = new InventoryRepository(db);
+  if ((await inventory.listAll()).length === 0) {
+    for (const item of defaultInventoryItems) {
+      await inventory.create(item);
+    }
+  }
+
+  const expenses = new ExpenseRepository(db);
+  if ((await expenses.listBetween(0, Date.now())).length === 0) {
+    await expenses.create({
+      amountCents: 89900,
+      category: 'supplies',
+      description: 'Seed demo expense — shampoo refill',
+      incurredAt: Date.now(),
+      loggedBy: null,
+    });
   }
 }

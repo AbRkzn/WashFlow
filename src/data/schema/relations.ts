@@ -2,10 +2,13 @@ import { relations } from 'drizzle-orm';
 
 import { appointments } from './appointments';
 import { customers } from './customers';
+import { expenses } from './expenses';
+import { inventoryItems } from './inventory-items';
 import { jobs } from './jobs';
 import { payments } from './payments';
 import { photos } from './photos';
 import { services } from './services';
+import { stockAdjustments } from './stock-adjustments';
 import { users } from './users';
 import { vehicles } from './vehicles';
 import { voidRequests } from './void-requests';
@@ -70,6 +73,8 @@ export const userRelations = relations(users, ({ many }) => ({
   jobs: many(jobs),
   payments: many(payments),
   voidRequests: many(voidRequests),
+  stockAdjustments: many(stockAdjustments),
+  expenses: many(expenses),
 }));
 
 export const photoRelations = relations(photos, ({ one }) => ({
@@ -107,4 +112,26 @@ export const voidRequestRelations = relations(voidRequests, ({ one }) => ({
 
 export const serviceRelations = relations(services, ({ many }) => ({
   jobs: many(jobs),
+}));
+
+export const inventoryItemRelations = relations(inventoryItems, ({ many }) => ({
+  stockAdjustments: many(stockAdjustments),
+}));
+
+export const stockAdjustmentRelations = relations(stockAdjustments, ({ one }) => ({
+  item: one(inventoryItems, {
+    fields: [stockAdjustments.itemId],
+    references: [inventoryItems.id],
+  }),
+  adjustedByUser: one(users, {
+    fields: [stockAdjustments.adjustedBy],
+    references: [users.id],
+  }),
+}));
+
+export const expenseRelations = relations(expenses, ({ one }) => ({
+  loggedByUser: one(users, {
+    fields: [expenses.loggedBy],
+    references: [users.id],
+  }),
 }));

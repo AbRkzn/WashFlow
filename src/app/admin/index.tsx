@@ -10,6 +10,7 @@ const quickLinks = [
   { label: 'Cashier — Check-in & Queue', href: '/cashier', icon: 'car-sport-outline' },
   { label: 'Manager — Day Overview', href: '/manager', icon: 'bar-chart-outline' },
   { label: 'Washer — Job Queue', href: '/washer', icon: 'sparkles-outline' },
+  { label: 'Inventory', href: '/admin/inventory', icon: 'cube-outline' },
 ] as const;
 
 export default function AdminHome() {
