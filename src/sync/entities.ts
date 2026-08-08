@@ -48,13 +48,26 @@ export function entityByName(name: string): SyncEntity | undefined {
   return SYNC_ENTITIES.find((entity) => entity.name === name);
 }
 
+/**
+ * Drizzle 0.45 stores a table's columns under the internal
+ * `Symbol.for('drizzle:Columns')` key (there is no public `table._`).
+ */
+const COLUMNS_KEY = Symbol.for('drizzle:Columns');
+
+function tableColumns(table: AnySQLiteTable): Record<string, { name: string }> {
+  return ((table as unknown as Record<symbol, Record<string, { name: string }> | undefined>)[COLUMNS_KEY]) ?? {};
+}
+
+/** Maps a Drizzle property name to its snake_case DB column name. */
+export function dbColumnName(table: AnySQLiteTable, prop: string): string {
+  return tableColumns(table)[prop]?.name ?? prop;
+}
+
 export function columnMaps(table: AnySQLiteTable): {
   propToDb: Map<string, string>;
   dbToProp: Map<string, string>;
 } {
-  const entries = Object.entries(
-    table._.columns as Record<string, { name: string }>,
-  );
+  const entries = Object.entries(tableColumns(table));
   return {
     propToDb: new Map(entries.map(([prop, column]) => [prop, column.name])),
     dbToProp: new Map(entries.map(([prop, column]) => [column.name, prop])),

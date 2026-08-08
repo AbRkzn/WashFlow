@@ -4,7 +4,7 @@ import { db } from '@/data/db';
 import { OutboxRepository, SyncStateRepository } from '@/data/repositories';
 import type { OutboxRow } from '@/data/schema';
 import { SYNC_STATE_KEYS } from '@/data/schema';
-import { entityByName, rowFromRemote, rowToRemote, type SyncEntity } from '@/sync/entities';
+import { dbColumnName, entityByName, rowFromRemote, rowToRemote, type SyncEntity } from '@/sync/entities';
 import { remotePull, remotePush } from '@/sync/remote';
 
 const outboxRepository = new OutboxRepository(db);
@@ -29,11 +29,7 @@ export interface SyncSummary {
 }
 
 function idColumn(entity: SyncEntity): string {
-  return (
-    (entity.table as never as { _: { columns: Record<string, { name: string }> } })._.columns[
-      entity.idKey
-    ]?.name ?? entity.idKey
-  );
+  return dbColumnName(entity.table, entity.idKey);
 }
 
 async function readRow(entity: SyncEntity, entityId: string): Promise<Record<string, unknown> | undefined> {
