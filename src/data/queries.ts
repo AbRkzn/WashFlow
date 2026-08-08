@@ -49,6 +49,7 @@ import {
   reopenDay,
 } from '@/services/day-close';
 import { countPendingConflicts, listPendingConflicts, resolveConflict } from '@/services/conflicts';
+import { listAllUsers, provisionUserOnServer } from '@/services/users';
 import type { AdjustmentType } from '@/domain/inventory';
 import type { ExpenseCategory } from '@/domain/expense';
 import type { ConflictResolution } from '@/domain/conflict';
@@ -171,6 +172,24 @@ export function useWashers() {
   return useQuery({
     queryKey: userKeys.washers,
     queryFn: listWashers,
+  });
+}
+
+export function useAllUsers() {
+  return useQuery({
+    queryKey: userKeys.all,
+    queryFn: listAllUsers,
+  });
+}
+
+export function useProvisionUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { values: Parameters<typeof provisionUserOnServer>[0]; adminId: string }) =>
+      provisionUserOnServer(input.values, input.adminId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userKeys.all });
+    },
   });
 }
 
