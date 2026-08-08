@@ -2,6 +2,7 @@ import { Redirect } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useLoadDemoData } from '@/data/queries';
 import { useSessionStore } from '@/stores/session-store';
 const roleHome = {
   admin: '/admin',
@@ -22,6 +24,7 @@ const roleHome = {
 export default function SignInScreen() {
   const user = useSessionStore((s) => s.user);
   const signIn = useSessionStore((s) => s.signIn);
+  const loadDemo = useLoadDemoData();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -105,6 +108,28 @@ export default function SignInScreen() {
             ) : (
               <Text className="text-base font-semibold text-white">Sign in</Text>
             )}
+          </Pressable>
+
+          <Pressable
+            onPress={() =>
+              loadDemo
+                .mutateAsync()
+                .then((seeded) =>
+                  Alert.alert(
+                    'Demo data',
+                    seeded
+                      ? 'Demo data is ready. Sign in to explore the app.'
+                      : 'Demo data is already loaded.',
+                  ),
+                )
+                .catch(() => Alert.alert('Demo data', 'Could not load demo data right now.'))
+            }
+            disabled={loadDemo.isPending}
+            className="mt-3 w-full items-center rounded-2xl border border-neutral-300 px-6 py-3 active:opacity-80 disabled:opacity-50 dark:border-neutral-700"
+          >
+            <Text className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+              {loadDemo.isPending ? 'Loading demo data...' : 'Load demo data'}
+            </Text>
           </Pressable>
 
           <Text className="mt-4 text-center text-xs text-neutral-400 dark:text-neutral-500">

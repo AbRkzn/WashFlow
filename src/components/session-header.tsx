@@ -1,13 +1,23 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { ROLE_LABELS } from '@/domain/user';
 import { useSessionStore } from '@/stores/session-store';
+import { useThemeStore } from '@/stores/theme-store';
 import { SyncStatusBar } from '@/components/sync-status-bar';
+
+const THEME_ICONS = {
+  light: 'sunny',
+  dark: 'moon',
+  system: 'contrast',
+} as const;
 
 export function SessionHeader() {
   const user = useSessionStore((s) => s.user);
   const signOut = useSessionStore((s) => s.signOut);
+  const theme = useThemeStore((s) => s.theme);
+  const cycleTheme = useThemeStore((s) => s.cycleTheme);
   const [busy, setBusy] = useState(false);
 
   if (!user) {
@@ -38,15 +48,28 @@ export function SessionHeader() {
             {user.name}
           </Text>
         </View>
-        <Pressable
-          onPress={handleSignOut}
-          disabled={busy}
-          className="rounded-xl px-3 py-1.5 active:opacity-70"
-        >
-          <Text className="text-sm font-medium text-red-600 dark:text-red-400">
-            {busy ? '...' : 'Sign out'}
-          </Text>
-        </Pressable>
+        <View className="flex-row items-center gap-2">
+          <Pressable
+            onPress={cycleTheme}
+            accessibilityLabel="Toggle theme"
+            className="rounded-xl border border-neutral-200 p-2 active:opacity-70 dark:border-neutral-700"
+          >
+            <Ionicons
+              name={THEME_ICONS[theme]}
+              size={18}
+              color="#0E7490"
+            />
+          </Pressable>
+          <Pressable
+            onPress={handleSignOut}
+            disabled={busy}
+            className="rounded-xl px-3 py-1.5 active:opacity-70"
+          >
+            <Text className="text-sm font-medium text-red-600 dark:text-red-400">
+              {busy ? '...' : 'Sign out'}
+            </Text>
+          </Pressable>
+        </View>
       </View>
       <SyncStatusBar />
     </View>

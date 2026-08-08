@@ -11,14 +11,20 @@ import { db, initDatabase } from '@/data/db';
 import { seedIfEmpty } from '@/data/seed';
 import { configureNotifications } from '@/services/notifications';
 import { useSessionStore } from '@/stores/session-store';
+import { useThemeStore } from '@/stores/theme-store';
 import { runSync } from '@/sync/engine';
 
 const queryClient = new QueryClient();
 
 export default function RootLayout() {
-  const { colorScheme } = useColorScheme();
+  const { colorScheme, setColorScheme } = useColorScheme();
+  const theme = useThemeStore((s) => s.theme);
   const [databaseReady, setDatabaseReady] = useState(false);
   const [databaseError, setDatabaseError] = useState(false);
+
+  useEffect(() => {
+    setColorScheme(theme);
+  }, [theme, setColorScheme]);
 
   useEffect(() => {
     let cancelled = false;
