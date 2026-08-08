@@ -1,0 +1,5 @@
+# Supabase CLI project config (functions deploy).
+project_id = "washflow"
+
+[functions.provision-user]
+verify_jwt = true
