@@ -2,13 +2,17 @@ import { eq } from 'drizzle-orm';
 
 import { db } from '@/data/db';
 import { OutboxRepository, SyncStateRepository } from '@/data/repositories';
+import { ConflictReviewRepository } from '@/data/repositories/conflict-repository';
 import type { OutboxRow } from '@/data/schema';
 import { SYNC_STATE_KEYS } from '@/data/schema';
+import { conflictKindForEntity, describeConflict, type ConflictKind } from '@/domain/conflict';
+import { reflowAppointmentOnConflict } from '@/services/appointments';
 import { dbColumnName, entityByName, rowFromRemote, rowToRemote, type SyncEntity } from '@/sync/entities';
 import { remotePull, remotePush } from '@/sync/remote';
 
 const outboxRepository = new OutboxRepository(db);
 const syncStateRepository = new SyncStateRepository(db);
+const conflictRepository = new ConflictReviewRepository(db);
 
 let running = false;
 let lastError: string | null = null;
@@ -75,6 +79,33 @@ function coalescePending(entries: OutboxRow[]): OutboxRow[] {
   return Array.from(latest.values()).sort((a, b) => a.createdAt - b.createdAt);
 }
 
+/**
+ * Records a conflict for the Manager review queue. Deduplicated on the
+ * pending status so repeated sync cycles don't spam the queue. Best-effort.
+ */
+async function createConflictRecord(
+  kind: ConflictKind,
+  entity: string,
+  entityId: string,
+  options: { description?: string; localRow?: Record<string, unknown>; remoteRow?: Record<string, unknown> } = {},
+): Promise<void> {
+  try {
+    if (await conflictRepository.hasPendingFor(entity, entityId)) {
+      return;
+    }
+    await conflictRepository.create({
+      kind,
+      entity,
+      entityId,
+      description: options.description ?? describeConflict(kind),
+      localRow: options.localRow ?? null,
+      remoteRow: options.remoteRow ?? null,
+    });
+  } catch (error) {
+    console.warn('Conflict review enqueue failed (non-fatal)', error);
+  }
+}
+
 export async function pushPending(): Promise<SyncResult> {
   await outboxRepository.retryDue();
   const pending = await outboxRepository.listPending();
@@ -99,10 +130,26 @@ export async function pushPending(): Promise<SyncResult> {
     }
     const payload = rowToRemote(entity.table, row);
     try {
-      const { serverSeq } = await remotePush(entry.entity, payload);
-      await updateSeq(entity, entry.entityId, serverSeq);
-      await outboxRepository.markSynced(entry.id);
-      pushed += 1;
+      const result = await remotePush(entry.entity, payload);
+      if (result.ok) {
+        await updateSeq(entity, entry.entityId, result.serverSeq);
+        await outboxRepository.markSynced(entry.id);
+        pushed += 1;
+      } else {
+        // Hard server decision (first-write-wins / first-claim-wins): settle
+        // the entry instead of retrying, then record it for the Manager.
+        await outboxRepository.markSynced(entry.id);
+        if (result.code === 'slot_taken' && entry.entity === 'appointment') {
+          await reflowAppointmentOnConflict(entry.entityId);
+        }
+        await createConflictRecord(
+          result.code === 'job_claimed' ? 'claim' : 'slot',
+          entry.entity,
+          entry.entityId,
+          { localRow: payload },
+        );
+        pushed += 1;
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       lastError = message;
@@ -133,7 +180,20 @@ export async function pullChanges(): Promise<SyncResult> {
     const remote = change.row as Record<string, unknown>;
     const entityId = String(remote[idColumn(entity)] ?? '');
     if (!entityId) continue;
-    if (await isDirty(entity, entityId)) continue;
+    if (await isDirty(entity, entityId)) {
+      // Both sides changed this row. Routine entities follow Last-Write-Wins
+      // (the local change is queued to push and will win by sequence). Financial
+      // rows are never silently resolved — route them to the Manager queue.
+      const kind = conflictKindForEntity(entity.name);
+      if (kind) {
+        const localRow = await readRow(entity, entityId);
+        await createConflictRecord(kind, entity.name, entityId, {
+          localRow: localRow ? rowToRemote(entity.table, localRow) : undefined,
+          remoteRow: remote,
+        });
+      }
+      continue;
+    }
     const localRow = rowFromRemote(entity.table, remote);
     await upsertRow(entity, localRow);
     maxSeq = Math.max(maxSeq, change.serverSeq);
@@ -180,4 +240,27 @@ export async function getSyncSummary(): Promise<SyncSummary> {
     lastError,
     running,
   };
+}
+
+/**
+ * Applies a remote row (snake_case) to the local entity table, overwriting the
+ * local version. Used when a Manager approves the remote side of a conflict.
+ */
+export async function applyRemote(entityName: string, row: Record<string, unknown>): Promise<void> {
+  const entity = entityByName(entityName);
+  if (!entity) {
+    return;
+  }
+  const localRow = rowFromRemote(entity.table, row);
+  await upsertRow(entity, localRow);
+}
+
+/** Clears every queued local change for a row — used when the remote side wins. */
+export async function clearOutboxFor(entityName: string, entityId: string): Promise<void> {
+  const entries = await outboxRepository.listForEntity(entityName, entityId);
+  for (const entry of entries) {
+    if (entry.status !== 'synced') {
+      await outboxRepository.markSynced(entry.id);
+    }
+  }
 }

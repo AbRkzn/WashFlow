@@ -1,5 +1,8 @@
 -- WashFlow sync mirror (Supabase/Postgres).
 -- P8a: server-assigned sequence + full-row mirror + pull-by-sequence.
+-- P8b: first-write-wins for job claims and appointment slots, with typed
+--      conflict responses (`{ok:false, code}`) that the client settles instead
+--      of retrying, then routes to the Manager conflict-review queue.
 --
 -- Design notes:
 --   * `sync_seq` is the single server-assigned sequence. The client NEVER uses
@@ -10,9 +13,9 @@
 --     schema), so the mirror is lossless; it just happens to be column-typed
 --     JSON rather than discrete columns. Tombstones propagate: a soft-deleted
 --     row is pushed with `deleted_at` set and stays in the mirror.
---   * `sync_upsert` runs `security definer` and is atomic: it takes the next
---     sequence value and upserts in a single statement. Slot/claim
---     first-write-wins checks land here in P8b.
+--   * `sync_upsert` runs `security definer` and is atomic: advisory locks
+--     serialize concurrent pushes for the same row (claims) or the same slot,
+--     so first-write-wins is enforced even across simultaneous devices.
 --   * Access is only through the two RPC functions; direct table access is
 --     revoked (definer functions bypass RLS because their owner is postgres).
 
@@ -43,9 +46,11 @@ as $$
   );
 $$;
 
--- Pushes one full row and returns the server-assigned sequence number.
+-- Pushes one full row. Returns `{ok:true, server_seq}` on success, or
+-- `{ok:false, code, message}` when the server settled a first-write-wins
+-- conflict against a concurrent device.
 create or replace function public.sync_upsert(p_entity text, p_row jsonb)
-returns bigint
+returns jsonb
 language plpgsql
 security definer
 set search_path = public
@@ -53,6 +58,8 @@ as $$
 declare
   v_entity_id text;
   v_seq bigint;
+  v_claim_status text;
+  v_claim_assigned text;
 begin
   if not public.sync_accepts_entity(p_entity) then
     raise exception 'unknown sync entity: %', p_entity;
@@ -61,6 +68,54 @@ begin
   v_entity_id := coalesce(p_row ->> 'id', p_row ->> 'key', '');
   if v_entity_id = '' then
     raise exception 'sync row missing id/key';
+  end if;
+
+  -- P8b: first-claim-wins — a job claimed by a different device is rejected.
+  if p_entity = 'job'
+     and coalesce(p_row ->> 'deleted_at', '') = ''
+     and p_row ->> 'status' = 'assigned'
+     and p_row ->> 'assigned_to' is not null then
+    -- Serialize concurrent claims on the same job.
+    perform pg_advisory_xact_lock(hashtextextended('job:' || v_entity_id, 0));
+    select m.row ->> 'status', m.row ->> 'assigned_to'
+      into v_claim_status, v_claim_assigned
+      from public.sync_mirror m
+     where m.entity = 'job' and m.entity_id = v_entity_id;
+
+    if v_claim_status = 'assigned'
+       and v_claim_assigned is distinct from p_row ->> 'assigned_to' then
+      return jsonb_build_object(
+        'ok', false,
+        'code', 'job_claimed',
+        'message', 'This job was already claimed by another washer.'
+      );
+    end if;
+  end if;
+
+  -- P8b: first-write-wins for appointment slots. The same slot booked on two
+  -- devices resolves here; the loser is auto-reflowed client-side.
+  if p_entity = 'appointment'
+     and coalesce(p_row ->> 'deleted_at', '') = ''
+     and p_row ->> 'status' = 'booked' then
+    perform pg_advisory_xact_lock(
+      hashtextextended('appointment:' || p_row ->> 'date' || ':' || p_row ->> 'slot_start', 0)
+    );
+    if exists (
+      select 1
+      from public.sync_mirror m
+      where m.entity = 'appointment'
+        and m.entity_id <> v_entity_id
+        and coalesce(m.row ->> 'deleted_at', '') = ''
+        and m.row ->> 'status' = 'booked'
+        and m.row ->> 'date' = p_row ->> 'date'
+        and m.row ->> 'slot_start' = p_row ->> 'slot_start'
+    ) then
+      return jsonb_build_object(
+        'ok', false,
+        'code', 'slot_taken',
+        'message', 'This appointment slot was already booked.'
+      );
+    end if;
   end if;
 
   insert into public.sync_mirror (entity, entity_id, row, server_seq, updated_at)
@@ -72,7 +127,7 @@ begin
     updated_at = excluded.updated_at
   returning server_seq into v_seq;
 
-  return v_seq;
+  return jsonb_build_object('ok', true, 'server_seq', v_seq);
 end;
 $$;
 

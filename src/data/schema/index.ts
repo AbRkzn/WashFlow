@@ -1,6 +1,7 @@
 export * from './appointments';
 export * from './audit-log';
 export * from './common';
+export * from './conflicts';
 export * from './customers';
 export * from './expenses';
 export * from './inventory-items';

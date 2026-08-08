@@ -1,5 +1,6 @@
 export { AppointmentRepository } from './appointment-repository';
 export { AuditLogRepository } from './audit-repository';
+export { ConflictReviewRepository } from './conflict-repository';
 export { CustomerRepository } from './customer-repository';
 export { ExpenseRepository } from './expense-repository';
 export { InventoryRepository } from './inventory-repository';
@@ -17,6 +18,7 @@ export { VehicleRepository, normalizePlate } from './vehicle-repository';
 export { VoidRequestRepository } from './void-request-repository';
 export type { AppointmentEntry, NewAppointment } from './appointment-repository';
 export type { NewAuditLog } from './audit-repository';
+export type { ConflictReviewEntry, NewConflictReview } from './conflict-repository';
 export type { CustomerPatch, NewCustomer } from './customer-repository';
 export type { NewExpense } from './expense-repository';
 export type { InventoryItemPatch, NewInventoryItem } from './inventory-repository';

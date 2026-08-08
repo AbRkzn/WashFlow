@@ -136,6 +136,24 @@ export class AppointmentRepository {
     return null;
   }
 
+  async moveSlot(id: string, newSlotStart: number, fromSlotStart: number): Promise<boolean> {
+    const rows = await this.db
+      .update(appointments)
+      .set({
+        slotStart: newSlotStart,
+        rescheduled: true,
+        rescheduledFrom: fromSlotStart,
+        updatedAt: Date.now(),
+        version: sql`${appointments.version} + 1`,
+      })
+      .where(and(eq(appointments.id, id), eq(appointments.status, 'booked'), isNull(appointments.deletedAt)))
+      .returning({ id: appointments.id });
+    if (rows.length > 0) {
+      await enqueueChange('appointment', id, 'upsert');
+    }
+    return rows.length > 0;
+  }
+
   async markCancelled(id: string, at: number = Date.now()): Promise<boolean> {
     const rows = await this.db
       .update(appointments)
