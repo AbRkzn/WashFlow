@@ -39,10 +39,19 @@ import {
 import { getSchedule } from '@/services/settings';
 import { adjustStock, createInventoryItem, deleteInventoryItem, listInventory, listLowStockItems, listStockMovements, updateInventoryItem } from '@/services/inventory';
 import { listDayExpenses, logExpense } from '@/services/expenses';
+import {
+  closeDay,
+  computeDayReport,
+  getDayClose,
+  listDayCloses,
+  listEmployeePerformance,
+  reopenDay,
+} from '@/services/day-close';
 import { countPendingConflicts, listPendingConflicts, resolveConflict } from '@/services/conflicts';
 import type { AdjustmentType } from '@/domain/inventory';
 import type { ExpenseCategory } from '@/domain/expense';
 import type { ConflictResolution } from '@/domain/conflict';
+import { dateKey } from '@/domain/day-close';
 
 export const jobKeys = {
   all: ['jobs'] as const,
@@ -104,6 +113,14 @@ export const inventoryKeys = {
 export const expenseKeys = {
   all: ['expenses'] as const,
   day: (day: string) => ['expenses', 'day', day] as const,
+};
+
+export const dayCloseKeys = {
+  all: ['day-closes'] as const,
+  list: ['day-closes', 'list'] as const,
+  byDay: (day: string) => ['day-closes', 'day', day] as const,
+  report: (day: string) => ['day-closes', 'report', day] as const,
+  performance: (day: string) => ['day-closes', 'performance', day] as const,
 };
 
 export function useQueuedJobs() {
@@ -485,5 +502,62 @@ export function useLogExpense() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: expenseKeys.all });
     },
+  });
+}
+
+export function useDayReport(day: string) {
+  return useQuery({
+    queryKey: dayCloseKeys.report(day),
+    queryFn: () => computeDayReport(day),
+    enabled: Boolean(day),
+  });
+}
+
+export function useDayClose(day: string) {
+  return useQuery({
+    queryKey: dayCloseKeys.byDay(day),
+    queryFn: () => getDayClose(day),
+    enabled: Boolean(day),
+  });
+}
+
+export function useDayCloses() {
+  return useQuery({
+    queryKey: dayCloseKeys.list,
+    queryFn: listDayCloses,
+  });
+}
+
+export function useCloseDay() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { declaredCashCents: number; notes?: string; managerId: string }) =>
+      closeDay(input.managerId, input.declaredCashCents, input.notes),
+    onSuccess: () => {
+      const day = dateKey();
+      queryClient.invalidateQueries({ queryKey: dayCloseKeys.all });
+      queryClient.invalidateQueries({ queryKey: dayCloseKeys.byDay(day) });
+      queryClient.invalidateQueries({ queryKey: dayCloseKeys.report(day) });
+      queryClient.invalidateQueries({ queryKey: dayCloseKeys.performance(day) });
+    },
+  });
+}
+
+export function useReopenDay() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { day: string; adminId: string }) => reopenDay(input.day, input.adminId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dayCloseKeys.all });
+      queryClient.invalidateQueries({ queryKey: dayCloseKeys.byDay(dateKey()) });
+    },
+  });
+}
+
+export function useEmployeePerformance(day: string) {
+  return useQuery({
+    queryKey: dayCloseKeys.performance(day),
+    queryFn: () => listEmployeePerformance(day),
+    enabled: Boolean(day),
   });
 }

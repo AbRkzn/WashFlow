@@ -216,6 +216,38 @@ export class JobRepository {
       .orderBy(asc(jobs.createdAt));
   }
 
+  /** Jobs finished (completed or paid) within a time window — for day reports. */
+  async listFinishedBetween(from: number, to: number): Promise<Job[]> {
+    return this.db
+      .select()
+      .from(jobs)
+      .where(
+        and(
+          inArray(jobs.status, ['completed', 'paid']),
+          sql`${jobs.updatedAt} >= ${from}`,
+          sql`${jobs.updatedAt} <= ${to}`,
+          isNull(jobs.deletedAt),
+        ),
+      )
+      .orderBy(asc(jobs.updatedAt));
+  }
+
+  /** Jobs voided within a time window — for day reports. */
+  async listVoidedBetween(from: number, to: number): Promise<Job[]> {
+    return this.db
+      .select()
+      .from(jobs)
+      .where(
+        and(
+          eq(jobs.status, 'voided'),
+          sql`${jobs.updatedAt} >= ${from}`,
+          sql`${jobs.updatedAt} <= ${to}`,
+          isNull(jobs.deletedAt),
+        ),
+      )
+      .orderBy(asc(jobs.updatedAt));
+  }
+
   async listForWasher(washerId: string): Promise<QueueEntry[]> {
     return this.db
       .select(JOB_SELECT)

@@ -2,6 +2,7 @@ export { AppointmentRepository } from './appointment-repository';
 export { AuditLogRepository } from './audit-repository';
 export { ConflictReviewRepository } from './conflict-repository';
 export { CustomerRepository } from './customer-repository';
+export { DayCloseRepository } from './day-close-repository';
 export { ExpenseRepository } from './expense-repository';
 export { InventoryRepository } from './inventory-repository';
 export { JobRepository } from './job-repository';
@@ -20,6 +21,8 @@ export type { AppointmentEntry, NewAppointment } from './appointment-repository'
 export type { NewAuditLog } from './audit-repository';
 export type { ConflictReviewEntry, NewConflictReview } from './conflict-repository';
 export type { CustomerPatch, NewCustomer } from './customer-repository';
+export type { DayClose } from './day-close-repository';
+export type { NewDayClose } from './day-close-repository';
 export type { NewExpense } from './expense-repository';
 export type { InventoryItemPatch, NewInventoryItem } from './inventory-repository';
 export type { NewJob, QueueEntry } from './job-repository';

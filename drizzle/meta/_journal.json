@@ -71,6 +71,13 @@
       "when": 1786149959224,
       "tag": "0009_daffy_kitty_pryde",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1786150431151,
+      "tag": "0010_wide_umar",
+      "breakpoints": true
     }
   ]
 }

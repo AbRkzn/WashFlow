@@ -11,6 +11,7 @@ const quickLinks = [
   { label: 'Manager — Day Overview', href: '/manager', icon: 'bar-chart-outline' },
   { label: 'Washer — Job Queue', href: '/washer', icon: 'sparkles-outline' },
   { label: 'Inventory', href: '/admin/inventory', icon: 'cube-outline' },
+  { label: 'Closed Days — Reopen', href: '/admin/day-closes', icon: 'calendar-outline' },
 ] as const;
 
 export default function AdminHome() {
@@ -23,7 +24,7 @@ export default function AdminHome() {
         <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
           <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Admin</Text>
           <Text className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            Settings, user management, inventory, and config land in P2/P7.
+            User management, config, and settings.
           </Text>
 
           <Text className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">

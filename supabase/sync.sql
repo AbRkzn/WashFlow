@@ -41,7 +41,7 @@ immutable
 as $$
   select p_entity in (
     'customer', 'vehicle', 'service', 'job', 'payment', 'void_request',
-    'appointment', 'expense', 'inventory_item', 'stock_adjustment',
+    'appointment', 'expense', 'day_close', 'inventory_item', 'stock_adjustment',
     'photo', 'recent_plate', 'setting', 'user'
   );
 $$;

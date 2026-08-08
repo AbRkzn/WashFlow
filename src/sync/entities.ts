@@ -3,6 +3,7 @@ import type { AnySQLiteTable } from 'drizzle-orm/sqlite-core';
 import {
   appointments,
   customers,
+  dayCloses,
   expenses,
   inventoryItems,
   jobs,
@@ -36,6 +37,7 @@ export const SYNC_ENTITIES: SyncEntity[] = [
   { name: 'void_request', table: voidRequests, idKey: 'id' },
   { name: 'appointment', table: appointments, idKey: 'id' },
   { name: 'expense', table: expenses, idKey: 'id' },
+  { name: 'day_close', table: dayCloses, idKey: 'id' },
   { name: 'inventory_item', table: inventoryItems, idKey: 'id' },
   { name: 'stock_adjustment', table: stockAdjustments, idKey: 'id' },
   { name: 'photo', table: photos, idKey: 'id' },

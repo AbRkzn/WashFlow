@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import { RoleGuard } from '@/components/role-guard';
 import { SessionHeader } from '@/components/session-header';
 import {
   useApproveVoidRequest,
+  useDayClose,
   useForceAssign,
   usePendingConflicts,
   usePendingVoidRequests,
@@ -20,6 +22,7 @@ import type { WorkingEntry } from '@/services/jobs';
 import { parseConflictRow } from '@/services/conflicts';
 import { JOB_STATUS_LABELS, type JobStatus, WORKING_STATUSES } from '@/domain/job';
 import { CONFLICT_KIND_LABELS } from '@/domain/conflict';
+import { dateKey } from '@/domain/day-close';
 import type { ConflictReviewEntry } from '@/data/repositories';
 import { useSessionStore } from '@/stores/session-store';
 import { formatPesos } from '@/utils/money';
@@ -161,10 +164,12 @@ function ConflictDetailModal({
 }
 
 export default function ManagerHome() {
+  const router = useRouter();
   const actorId = useSessionStore((s) => s.user?.id ?? '');
   const { data: board } = useWorkingBoard();
   const { data: pendingVoids = [] } = usePendingVoidRequests();
   const { data: pendingConflicts = [] } = usePendingConflicts();
+  const { data: todayClose } = useDayClose(dateKey());
 
   const forceAssign = useForceAssign();
   const reassignJob = useReassignJob();
@@ -256,6 +261,18 @@ export default function ManagerHome() {
         <SessionHeader />
         <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
           <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Day Board</Text>
+
+          <Pressable
+            onPress={() => router.push('/manager/day-close')}
+            className="mt-3 flex-row items-center justify-between rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 active:opacity-80 dark:border-brand-900 dark:bg-brand-950"
+          >
+            <Text className="text-base font-semibold text-brand-800 dark:text-brand-200">
+              {todayClose ? "View today's report" : 'Close day'}
+            </Text>
+            <Text className="text-sm font-medium text-brand-600 dark:text-brand-400">
+              {todayClose ? 'Closed' : 'Open'}
+            </Text>
+          </Pressable>
 
           {sections.every((s) => s.entries.length === 0) ? (
             <View className="mt-16 items-center">
