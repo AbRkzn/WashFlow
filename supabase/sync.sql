@@ -151,6 +151,10 @@ begin
 end;
 $$;
 
+-- Defense in depth: even with direct grants revoked, enable RLS so the mirror
+-- is only reachable through the security-definer RPCs (which bypass RLS).
+alter table public.sync_mirror enable row level security;
+
 -- Staff devices call sync through the two RPC functions only.
 revoke all on public.sync_mirror from anon, authenticated;
 grant execute on function public.sync_upsert(text, jsonb) to authenticated;
