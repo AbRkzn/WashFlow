@@ -39,6 +39,7 @@ import {
 import { getSchedule } from '@/services/settings';
 import { adjustStock, createInventoryItem, deleteInventoryItem, listInventory, listLowStockItems, listStockMovements, updateInventoryItem } from '@/services/inventory';
 import { listDayExpenses, logExpense } from '@/services/expenses';
+import { loadDemoData } from '@/services/demo';
 import {
   closeDay,
   computeDayReport,
@@ -559,5 +560,15 @@ export function useEmployeePerformance(day: string) {
     queryKey: dayCloseKeys.performance(day),
     queryFn: () => listEmployeePerformance(day),
     enabled: Boolean(day),
+  });
+}
+
+export function useLoadDemoData() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: loadDemoData,
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    },
   });
 }
