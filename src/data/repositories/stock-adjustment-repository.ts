@@ -4,6 +4,7 @@ import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
 import { stockAdjustments, type StockAdjustment } from '@/data/schema';
 import type { AdjustmentType } from '@/domain/inventory';
+import { enqueueChange } from '@/sync/outbox';
 
 export interface NewStockAdjustment {
   itemId: string;
@@ -26,6 +27,7 @@ export class StockAdjustmentRepository {
       adjustedBy: input.adjustedBy ?? null,
     };
     await this.db.insert(stockAdjustments).values(record);
+    await enqueueChange('stock_adjustment', record.id, 'upsert');
     return record;
   }
 

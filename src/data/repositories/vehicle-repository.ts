@@ -3,6 +3,7 @@ import { and, asc, eq, isNull, like, sql } from 'drizzle-orm';
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
 import { vehicles, type Vehicle } from '@/data/schema';
+import { enqueueChange } from '@/sync/outbox';
 
 export interface NewVehicle {
   plateNumber: string;
@@ -78,6 +79,7 @@ export class VehicleRepository {
       year: input.year ?? null,
     };
     await this.db.insert(vehicles).values(record);
+    await enqueueChange('vehicle', record.id, 'upsert');
     return record;
   }
 
@@ -90,6 +92,7 @@ export class VehicleRepository {
       .update(vehicles)
       .set({ ...values, version: sql`${vehicles.version} + 1` })
       .where(eq(vehicles.id, id));
+    await enqueueChange('vehicle', id, 'upsert');
   }
 
   async softDelete(id: string): Promise<void> {
@@ -101,5 +104,6 @@ export class VehicleRepository {
         version: sql`${vehicles.version} + 1`,
       })
       .where(eq(vehicles.id, id));
+    await enqueueChange('vehicle', id, 'delete');
   }
 }

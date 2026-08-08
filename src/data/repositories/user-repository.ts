@@ -4,6 +4,7 @@ import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
 import { users, type User } from '@/data/schema';
 import type { UserRole } from '@/domain/user';
+import { enqueueChange } from '@/sync/outbox';
 
 export interface UpsertUser {
   id: string;
@@ -27,6 +28,7 @@ export class UserRepository {
         version: existing.version + 1,
       };
       await this.db.update(users).set(record).where(eq(users.id, existing.id));
+      await enqueueChange('user', record.id, 'upsert');
       return record;
     }
     const record: User = {
@@ -37,6 +39,7 @@ export class UserRepository {
       role: input.role,
     };
     await this.db.insert(users).values(record);
+    await enqueueChange('user', record.id, 'upsert');
     return record;
   }
 

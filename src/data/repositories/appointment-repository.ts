@@ -13,6 +13,7 @@ import {
   type Vehicle,
 } from '@/data/schema';
 import type { AppointmentStatus } from '@/domain/appointment';
+import { enqueueChange } from '@/sync/outbox';
 
 export interface NewAppointment {
   vehicleId: string;
@@ -60,6 +61,7 @@ export class AppointmentRepository {
       notes: input.notes ?? null,
     };
     await this.db.insert(appointments).values(record);
+    await enqueueChange('appointment', record.id, 'upsert');
     return record;
   }
 
@@ -140,6 +142,9 @@ export class AppointmentRepository {
       .set({ status: 'cancelled', updatedAt: at, version: sql`${appointments.version} + 1` })
       .where(and(eq(appointments.id, id), eq(appointments.status, 'booked')))
       .returning({ id: appointments.id });
+    if (rows.length > 0) {
+      await enqueueChange('appointment', id, 'upsert');
+    }
     return rows.length > 0;
   }
 
@@ -149,6 +154,9 @@ export class AppointmentRepository {
       .set({ status: 'completed', jobId, updatedAt: at, version: sql`${appointments.version} + 1` })
       .where(and(eq(appointments.id, id), eq(appointments.status, 'booked')))
       .returning({ id: appointments.id });
+    if (rows.length > 0) {
+      await enqueueChange('appointment', id, 'upsert');
+    }
     return rows.length > 0;
   }
 }

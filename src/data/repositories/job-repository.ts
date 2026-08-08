@@ -4,6 +4,7 @@ import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
 import { customers, jobs, services, vehicles, type Customer, type Job, type Service, type Vehicle } from '@/data/schema';
 import { type JobStatus, WORKING_STATUSES } from '@/domain/job';
+import { enqueueChange } from '@/sync/outbox';
 
 export interface NewJob {
   customerId: string;
@@ -44,6 +45,7 @@ export class JobRepository {
       notes: input.notes ?? null,
     };
     await this.db.insert(jobs).values(record);
+    await enqueueChange('job', record.id, 'upsert');
     return record;
   }
 
@@ -82,6 +84,9 @@ export class JobRepository {
       .set({ status, updatedAt: Date.now(), version: sql`${jobs.version} + 1` })
       .where(and(eq(jobs.id, id), isNull(jobs.deletedAt)))
       .returning({ id: jobs.id });
+    if (rows.length > 0) {
+      await enqueueChange('job', id, 'upsert');
+    }
     return rows.length > 0;
   }
 
@@ -91,6 +96,9 @@ export class JobRepository {
       .set({ status: to, updatedAt: Date.now(), version: sql`${jobs.version} + 1` })
       .where(and(eq(jobs.id, id), inArray(jobs.status, from), isNull(jobs.deletedAt)))
       .returning({ id: jobs.id });
+    if (rows.length > 0) {
+      await enqueueChange('job', id, 'upsert');
+    }
     return rows.length > 0;
   }
 
@@ -112,6 +120,9 @@ export class JobRepository {
         ),
       )
       .returning({ id: jobs.id });
+    if (rows.length > 0) {
+      await enqueueChange('job', id, 'upsert');
+    }
     return rows.length > 0;
   }
 
@@ -132,6 +143,9 @@ export class JobRepository {
         ),
       )
       .returning({ id: jobs.id });
+    if (rows.length > 0) {
+      await enqueueChange('job', id, 'upsert');
+    }
     return rows.length > 0;
   }
 
@@ -151,6 +165,9 @@ export class JobRepository {
         ),
       )
       .returning({ id: jobs.id });
+    if (rows.length > 0) {
+      await enqueueChange('job', id, 'upsert');
+    }
     return rows.length > 0;
   }
 
@@ -171,6 +188,9 @@ export class JobRepository {
         ),
       )
       .returning({ id: jobs.id });
+    if (rows.length > 0) {
+      await enqueueChange('job', id, 'upsert');
+    }
     return rows.length > 0;
   }
 

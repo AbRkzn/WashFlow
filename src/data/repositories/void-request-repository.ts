@@ -15,6 +15,7 @@ import {
   type VoidRequest,
 } from '@/data/schema';
 import type { VoidRequestStatus } from '@/domain/payment';
+import { enqueueChange } from '@/sync/outbox';
 
 export interface NewVoidRequest {
   jobId: string;
@@ -55,6 +56,7 @@ export class VoidRequestRepository {
       resolvedAt: input.resolvedAt ?? null,
     };
     await this.db.insert(voidRequests).values(record);
+    await enqueueChange('void_request', record.id, 'upsert');
     return record;
   }
 
@@ -90,6 +92,9 @@ export class VoidRequestRepository {
       .set({ status, resolvedBy, resolvedAt, updatedAt: Date.now(), version: sql`${voidRequests.version} + 1` })
       .where(and(eq(voidRequests.id, id), eq(voidRequests.status, 'pending')))
       .returning({ id: voidRequests.id });
+    if (rows.length > 0) {
+      await enqueueChange('void_request', id, 'upsert');
+    }
     return rows.length > 0;
   }
 }

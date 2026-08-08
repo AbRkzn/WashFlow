@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
 import { settings, type Setting } from '@/data/schema';
+import { enqueueChange } from '@/sync/outbox';
 
 export class SettingsRepository {
   constructor(private readonly db: Database) {}
@@ -31,5 +32,6 @@ export class SettingsRepository {
         .set({ value, updatedAt: Date.now() })
         .where(eq(settings.key, key));
     }
+    await enqueueChange('setting', key, 'upsert');
   }
 }
