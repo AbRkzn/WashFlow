@@ -1,5 +1,5 @@
 import { db } from '@/data/db';
-import { OutboxRepository } from '@/data/repositories';
+import { OutboxRepository } from '@/data/repositories/outbox-repository';
 import type { OutboxOp } from '@/data/schema';
 
 const outboxRepository = new OutboxRepository(db);
