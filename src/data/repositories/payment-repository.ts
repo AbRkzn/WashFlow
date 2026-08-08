@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
@@ -51,5 +51,14 @@ export class PaymentRepository {
       await enqueueChange('payment', id, 'upsert');
     }
     return rows.length > 0;
+  }
+
+  /** Payments recorded within a time window (voided payments stay in the row, flagged). */
+  async listBetween(from: number, to: number): Promise<Payment[]> {
+    return this.db
+      .select()
+      .from(payments)
+      .where(and(sql`${payments.paidAt} >= ${from}`, sql`${payments.paidAt} <= ${to}`, isNull(payments.deletedAt)))
+      .orderBy(sql`${payments.paidAt} asc`);
   }
 }

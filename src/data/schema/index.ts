@@ -3,6 +3,7 @@ export * from './audit-log';
 export * from './common';
 export * from './conflicts';
 export * from './customers';
+export * from './day-closes';
 export * from './expenses';
 export * from './inventory-items';
 export * from './jobs';
