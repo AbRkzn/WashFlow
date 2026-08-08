@@ -4,6 +4,7 @@ import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
 import { inventoryItems, type InventoryItem } from '@/data/schema';
 import type { InventoryCategory } from '@/domain/inventory';
+import { enqueueChange } from '@/sync/outbox';
 
 export interface NewInventoryItem {
   name: string;
@@ -61,6 +62,7 @@ export class InventoryRepository {
       notes: input.notes ?? null,
     };
     await this.db.insert(inventoryItems).values(record);
+    await enqueueChange('inventory_item', record.id, 'upsert');
     return record;
   }
 
@@ -69,6 +71,7 @@ export class InventoryRepository {
       .update(inventoryItems)
       .set({ ...patch, updatedAt: Date.now(), version: sql`${inventoryItems.version} + 1` })
       .where(eq(inventoryItems.id, id));
+    await enqueueChange('inventory_item', id, 'upsert');
   }
 
   async applyQuantityChange(id: string, changeQty: number): Promise<void> {
@@ -80,6 +83,7 @@ export class InventoryRepository {
         version: sql`${inventoryItems.version} + 1`,
       })
       .where(and(eq(inventoryItems.id, id), isNull(inventoryItems.deletedAt)));
+    await enqueueChange('inventory_item', id, 'upsert');
   }
 
   async softDelete(id: string): Promise<void> {
@@ -91,5 +95,6 @@ export class InventoryRepository {
         version: sql`${inventoryItems.version} + 1`,
       })
       .where(eq(inventoryItems.id, id));
+    await enqueueChange('inventory_item', id, 'delete');
   }
 }

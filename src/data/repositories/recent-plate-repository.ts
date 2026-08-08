@@ -3,6 +3,7 @@ import { desc, eq, sql } from 'drizzle-orm';
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
 import { recentPlates, type RecentPlate } from '@/data/schema';
+import { enqueueChange } from '@/sync/outbox';
 import { normalizePlate } from './vehicle-repository';
 
 export class RecentPlateRepository {
@@ -20,6 +21,7 @@ export class RecentPlateRepository {
         .update(recentPlates)
         .set({ lastUsedAt: Date.now(), updatedAt: Date.now(), version: sql`${recentPlates.version} + 1` })
         .where(eq(recentPlates.id, existing[0].id));
+      await enqueueChange('recent_plate', existing[0].id, 'upsert');
       return;
     }
     const record: RecentPlate = {
@@ -28,6 +30,7 @@ export class RecentPlateRepository {
       lastUsedAt: Date.now(),
     };
     await this.db.insert(recentPlates).values(record);
+    await enqueueChange('recent_plate', record.id, 'upsert');
   }
 
   async listRecent(limit = 5): Promise<RecentPlate[]> {

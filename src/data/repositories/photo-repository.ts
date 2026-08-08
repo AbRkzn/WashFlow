@@ -3,6 +3,7 @@ import { asc, eq } from 'drizzle-orm';
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
 import { photos, type Photo, type PhotoKind } from '@/data/schema';
+import { enqueueChange } from '@/sync/outbox';
 
 export class PhotoRepository {
   constructor(private readonly db: Database) {}
@@ -15,6 +16,7 @@ export class PhotoRepository {
       uri: input.uri,
     };
     await this.db.insert(photos).values(record);
+    await enqueueChange('photo', record.id, 'upsert');
     return record;
   }
 

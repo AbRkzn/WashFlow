@@ -3,6 +3,7 @@ import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
 import { customers, type Customer } from '@/data/schema';
+import { enqueueChange } from '@/sync/outbox';
 
 export interface NewCustomer {
   name: string;
@@ -48,6 +49,7 @@ export class CustomerRepository {
   async create(input: NewCustomer): Promise<Customer> {
     const record: Customer = { ...baseRecord(), name: input.name, phone: input.phone ?? null, notes: input.notes ?? null };
     await this.db.insert(customers).values(record);
+    await enqueueChange('customer', record.id, 'upsert');
     return record;
   }
 
@@ -60,6 +62,7 @@ export class CustomerRepository {
         version: sql`${customers.version} + 1`,
       })
       .where(eq(customers.id, id));
+    await enqueueChange('customer', id, 'upsert');
   }
 
   async softDelete(id: string): Promise<void> {
@@ -71,5 +74,6 @@ export class CustomerRepository {
         version: sql`${customers.version} + 1`,
       })
       .where(eq(customers.id, id));
+    await enqueueChange('customer', id, 'delete');
   }
 }

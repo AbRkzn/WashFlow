@@ -4,6 +4,7 @@ import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
 import { payments, type Payment } from '@/data/schema';
 import type { PaymentMethod } from '@/domain/payment';
+import { enqueueChange } from '@/sync/outbox';
 
 export interface NewPayment {
   jobId: string;
@@ -27,6 +28,7 @@ export class PaymentRepository {
       voidedAt: null,
     };
     await this.db.insert(payments).values(record);
+    await enqueueChange('payment', record.id, 'upsert');
     return record;
   }
 
@@ -45,6 +47,9 @@ export class PaymentRepository {
       .set({ voidedAt: at, updatedAt: Date.now(), version: sql`${payments.version} + 1` })
       .where(eq(payments.id, id))
       .returning({ id: payments.id });
+    if (rows.length > 0) {
+      await enqueueChange('payment', id, 'upsert');
+    }
     return rows.length > 0;
   }
 }

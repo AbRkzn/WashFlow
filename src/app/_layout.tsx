@@ -11,6 +11,7 @@ import { db, initDatabase } from '@/data/db';
 import { seedIfEmpty } from '@/data/seed';
 import { configureNotifications } from '@/services/notifications';
 import { useSessionStore } from '@/stores/session-store';
+import { runSync } from '@/sync/engine';
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ export default function RootLayout() {
         console.warn('Notification setup failed (non-fatal)', error);
       }
       await useSessionStore.getState().hydrate();
+      runSync().catch((error) => console.warn('Boot sync failed (non-fatal)', error));
     })();
     return () => {
       cancelled = true;

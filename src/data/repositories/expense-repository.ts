@@ -4,6 +4,7 @@ import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
 import { expenses, type Expense } from '@/data/schema';
 import { isExpenseCategory, type ExpenseCategory } from '@/domain/expense';
+import { enqueueChange } from '@/sync/outbox';
 
 export interface NewExpense {
   amountCents: number;
@@ -26,6 +27,7 @@ export class ExpenseRepository {
       loggedBy: input.loggedBy ?? null,
     };
     await this.db.insert(expenses).values(record);
+    await enqueueChange('expense', record.id, 'upsert');
     return record;
   }
 
@@ -57,5 +59,6 @@ export class ExpenseRepository {
       .update(expenses)
       .set({ deletedAt: Date.now(), updatedAt: Date.now(), version: sql`${expenses.version} + 1` })
       .where(eq(expenses.id, id));
+    await enqueueChange('expense', id, 'delete');
   }
 }

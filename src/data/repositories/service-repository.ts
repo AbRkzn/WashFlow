@@ -3,6 +3,7 @@ import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
 import { services, type Service } from '@/data/schema';
+import { enqueueChange } from '@/sync/outbox';
 
 export interface NewService {
   name: string;
@@ -61,6 +62,7 @@ export class ServiceRepository {
       sortOrder: input.sortOrder ?? 0,
     };
     await this.db.insert(services).values(record);
+    await enqueueChange('service', record.id, 'upsert');
     return record;
   }
 
@@ -69,6 +71,7 @@ export class ServiceRepository {
       .update(services)
       .set({ ...patch, updatedAt: Date.now(), version: sql`${services.version} + 1` })
       .where(eq(services.id, id));
+    await enqueueChange('service', id, 'upsert');
   }
 
   async softDelete(id: string): Promise<void> {
@@ -80,5 +83,6 @@ export class ServiceRepository {
         version: sql`${services.version} + 1`,
       })
       .where(eq(services.id, id));
+    await enqueueChange('service', id, 'delete');
   }
 }
