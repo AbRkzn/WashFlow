@@ -49,7 +49,7 @@ export async function remotePull(afterSeq: number): Promise<RemoteChange[]> {
   const rows = Array.isArray(data) ? data : [];
   return rows.map((change) => ({
     entity: String(change.entity),
-    row: (change.row ?? {}) as Record<string, unknown>,
+    row: (change.payload ?? {}) as Record<string, unknown>,
     serverSeq: Number(change.server_seq),
   }));
 }

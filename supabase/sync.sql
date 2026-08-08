@@ -136,14 +136,14 @@ create or replace function public.sync_changes(
   after_seq bigint,
   batch_size integer default 500
 )
-returns table (entity text, row jsonb, server_seq bigint)
+returns table (entity text, payload jsonb, server_seq bigint)
 language plpgsql
 security definer
 set search_path = public
 as $$
 begin
   return query
-    select m.entity, m.row, m.server_seq
+    select m.entity, m.row as payload, m.server_seq
     from public.sync_mirror m
     where m.server_seq > after_seq
     order by m.server_seq asc
