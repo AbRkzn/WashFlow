@@ -123,8 +123,8 @@ export async function listDayCloses(): Promise<DayClose[]> {
   return dayCloseRepository.list();
 }
 
-export async function getDayClose(day: string): Promise<DayClose | undefined> {
-  return dayCloseRepository.findByDay(day);
+export async function getDayClose(day: string): Promise<DayClose | null> {
+  return (await dayCloseRepository.findByDay(day)) ?? null;
 }
 
 /** Per-washer completed jobs + revenue for a day (employee performance). */
