@@ -13,11 +13,11 @@ const CORS_HEADERS = {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const jwks = createRemoteJWKSet(new URL(`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`));
 
-interface ProvisionRequest {
-  email: string;
-  password: string;
-  name: string;
-  role: Role;
+interface AdminUsersRequest {
+  action: 'list' | 'update';
+  userId?: string;
+  role?: Role;
+  password?: string;
 }
 
 Deno.serve(async (req) => {
@@ -35,36 +35,70 @@ Deno.serve(async (req) => {
       return json({ error: 'Admin role required' }, 403, CORS_HEADERS);
     }
 
-    const body = (await req.json()) as ProvisionRequest;
-    const email = body.email?.trim().toLowerCase();
-    const role = body.role;
-    const name = body.name?.trim() ?? email?.split('@')[0] ?? 'User';
-
-    if (!email || !body.password || body.password.length < 6) {
-      return json({ error: 'email, password (6+ chars) required' }, 400, CORS_HEADERS);
-    }
-    if (!VALID_ROLES.includes(role)) {
-      return json({ error: `role must be one of: ${VALID_ROLES.join(', ')}` }, 400, CORS_HEADERS);
-    }
-
+    const body = (await req.json()) as AdminUsersRequest;
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
       { auth: { autoRefreshToken: false, persistSession: false } },
     );
 
-    const { data, error } = await adminClient.auth.admin.createUser({
-      email,
-      password: body.password,
-      email_confirm: true,
-      user_metadata: { full_name: name },
-      app_metadata: { role },
-    });
-
-    if (error) {
-      return json({ error: error.message }, 400, CORS_HEADERS);
+    if (body.action === 'list') {
+      const { data, error } = await adminClient.auth.admin.listUsers();
+      if (error) {
+        return json({ error: error.message }, 400, CORS_HEADERS);
+      }
+      const users = (data.users ?? []).map((user) => ({
+        id: user.id,
+        email: user.email,
+        name: (user.user_metadata?.full_name as string | undefined) ??
+          user.email?.split('@')[0] ??
+          'User',
+        role: (user.app_metadata?.role as Role | undefined) ?? 'washer',
+      }));
+      return json({ users }, 200, CORS_HEADERS);
     }
-    return json({ id: data.user.id, email: data.user.email, role }, 200, CORS_HEADERS);
+
+    if (body.action === 'update') {
+      if (!body.userId) {
+        return json({ error: 'userId required' }, 400, CORS_HEADERS);
+      }
+      const patch: Record<string, unknown> = {};
+      if (body.role !== undefined) {
+        if (!VALID_ROLES.includes(body.role)) {
+          return json({ error: `role must be one of: ${VALID_ROLES.join(', ')}` }, 400, CORS_HEADERS);
+        }
+        patch.app_metadata = { role: body.role };
+      }
+      if (body.password !== undefined) {
+        if (typeof body.password !== 'string' || body.password.length < 6) {
+          return json({ error: 'password must be 6+ characters' }, 400, CORS_HEADERS);
+        }
+        patch.password = body.password;
+      }
+      if (Object.keys(patch).length === 0) {
+        return json({ error: 'nothing to update' }, 400, CORS_HEADERS);
+      }
+
+      const { data, error } = await adminClient.auth.admin.updateUserById(body.userId, patch);
+      if (error) {
+        return json({ error: error.message }, 400, CORS_HEADERS);
+      }
+      return json(
+        {
+          id: data.user.id,
+          email: data.user.email,
+          name:
+            (data.user.user_metadata?.full_name as string | undefined) ??
+            data.user.email?.split('@')[0] ??
+            'User',
+          role: (data.user.app_metadata?.role as Role | undefined) ?? 'washer',
+        },
+        200,
+        CORS_HEADERS,
+      );
+    }
+
+    return json({ error: 'unknown action' }, 400, CORS_HEADERS);
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : 'Unexpected error' }, 500, CORS_HEADERS);
   }

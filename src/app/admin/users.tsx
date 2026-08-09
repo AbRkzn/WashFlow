@@ -17,9 +17,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RoleGuard } from '@/components/role-guard';
 import { SessionHeader } from '@/components/session-header';
-import { useAllUsers, useProvisionUser } from '@/data/queries';
+import { useAllUsers, useProvisionUser, useResetUserPassword, useUpdateUserRole } from '@/data/queries';
 import { ROLE_LABELS, USER_ROLES, type UserRole } from '@/domain/user';
 import { useSessionStore } from '@/stores/session-store';
+import type { User } from '@/data/schema';
 
 interface UserFormState {
   name: string;
@@ -39,9 +40,16 @@ export default function AdminUsersScreen() {
   const actorId = useSessionStore((s) => s.user?.id ?? '');
   const { data: users, isLoading, isRefetching, refetch } = useAllUsers();
   const provision = useProvisionUser();
+  const updateRole = useUpdateUserRole();
+  const resetPassword = useResetUserPassword();
 
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState<UserFormState>(emptyForm);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editUser, setEditUser] = useState<User | null>(null);
+  const [editRole, setEditRole] = useState<UserRole>('washer');
+  const [editPassword, setEditPassword] = useState('');
 
   const name = form.name.trim();
   const email = form.email.trim().toLowerCase();
@@ -71,6 +79,48 @@ export default function AdminUsersScreen() {
   };
 
   const userList = users ?? [];
+
+  const openEdit = (user: User) => {
+    setEditUser(user);
+    setEditRole(user.role);
+    setEditPassword('');
+    setEditOpen(true);
+  };
+
+  const handleEditClose = () => {
+    setEditUser(null);
+    setEditPassword('');
+    setEditOpen(false);
+  };
+
+  const handleEditSave = () => {
+    if (!editUser) return;
+    const roleChanged = editRole !== editUser.role;
+    const hasPassword = editPassword.length > 0;
+    if (!roleChanged && !hasPassword) {
+      handleEditClose();
+      return;
+    }
+
+    const tasks: Promise<unknown>[] = [];
+    if (roleChanged) {
+      tasks.push(updateRole.mutateAsync({ userId: editUser.id, role: editRole, adminId: actorId }));
+    }
+    if (hasPassword) {
+      tasks.push(
+        resetPassword.mutateAsync({ userId: editUser.id, password: editPassword, adminId: actorId }),
+      );
+    }
+
+    Promise.all(tasks)
+      .then(() => {
+        handleEditClose();
+        Alert.alert('User updated', `${editUser.name}'s account was updated.`);
+      })
+      .catch((error) =>
+        Alert.alert('Update failed', error instanceof Error ? error.message : 'Something went wrong.'),
+      );
+  };
 
   return (
     <RoleGuard roles={['admin']}>
@@ -121,6 +171,14 @@ export default function AdminUsersScreen() {
                       {ROLE_LABELS[item.role]}
                     </Text>
                   </View>
+                  <Pressable
+                    onPress={() => openEdit(item)}
+                    className="ml-2 rounded-lg border border-neutral-300 px-3 py-1.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
+                  >
+                    <Text className="text-xs font-semibold text-neutral-700 dark:text-neutral-200">
+                      Edit
+                    </Text>
+                  </Pressable>
                 </View>
               </View>
             )}
@@ -223,6 +281,92 @@ export default function AdminUsersScreen() {
                       <ActivityIndicator color="#FFFFFF" />
                     ) : (
                       <Text className="text-sm font-semibold text-white">Create user</Text>
+                    )}
+                  </Pressable>
+                </View>
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+
+        <Modal visible={editOpen} animationType="slide" transparent onRequestClose={handleEditClose}>
+          <KeyboardAvoidingView
+            className="flex-1 justify-end bg-black/40"
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <View className="rounded-t-3xl bg-white p-5 dark:bg-neutral-900">
+              <Text className="text-lg font-bold text-neutral-900 dark:text-white">
+                Edit {editUser?.name}
+              </Text>
+              <Text className="mb-4 mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                Changes apply to the Supabase account immediately. Requires an internet connection.
+              </Text>
+              <ScrollView keyboardShouldPersistTaps="handled">
+                <Text className="mb-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  Role
+                </Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {USER_ROLES.map((role) => {
+                    const selected = role === editRole;
+                    return (
+                      <Pressable
+                        key={role}
+                        onPress={() => setEditRole(role)}
+                        className={`rounded-xl border px-3 py-2 active:opacity-80 ${
+                          selected
+                            ? 'border-brand-600 bg-brand-50 dark:border-brand-400 dark:bg-brand-950'
+                            : 'border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900'
+                        }`}
+                      >
+                        <Text
+                          className={`text-sm font-semibold ${
+                            selected ? 'text-brand-800 dark:text-brand-200' : 'text-neutral-900 dark:text-white'
+                          }`}
+                        >
+                          {ROLE_LABELS[role]}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <Text className="mb-2 mt-4 text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  New password (optional)
+                </Text>
+                <TextInput
+                  value={editPassword}
+                  onChangeText={setEditPassword}
+                  placeholder="Leave blank to keep current"
+                  placeholderTextColor="#94A3B8"
+                  secureTextEntry
+                  autoCapitalize="none"
+                  className="rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
+                />
+
+                <View className="mt-4 flex-row gap-2">
+                  <Pressable
+                    onPress={handleEditClose}
+                    disabled={updateRole.isPending || resetPassword.isPending}
+                    className="flex-1 rounded-xl border border-neutral-300 px-4 py-3 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
+                  >
+                    <Text className="text-center text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                      Cancel
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={handleEditSave}
+                    disabled={
+                      (editRole === editUser?.role && editPassword.length === 0) ||
+                      (editPassword.length > 0 && editPassword.length < 6) ||
+                      updateRole.isPending ||
+                      resetPassword.isPending
+                    }
+                    className="flex-1 flex-row items-center justify-center rounded-xl bg-brand-600 px-4 py-3 active:bg-brand-700 disabled:opacity-40"
+                  >
+                    {updateRole.isPending || resetPassword.isPending ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text className="text-sm font-semibold text-white">Save changes</Text>
                     )}
                   </Pressable>
                 </View>

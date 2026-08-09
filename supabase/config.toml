@@ -3,3 +3,6 @@ project_id = "washflow"
 
 [functions.provision-user]
 verify_jwt = true
+
+[functions.admin-users]
+verify_jwt = true

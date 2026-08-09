@@ -49,10 +49,11 @@ import {
   reopenDay,
 } from '@/services/day-close';
 import { countPendingConflicts, listPendingConflicts, resolveConflict } from '@/services/conflicts';
-import { listAllUsers, provisionUserOnServer } from '@/services/users';
+import { listAllUsers, provisionUserOnServer, resetRemoteUserPassword, updateRemoteUserRole } from '@/services/users';
 import type { AdjustmentType } from '@/domain/inventory';
 import type { ExpenseCategory } from '@/domain/expense';
 import type { ConflictResolution } from '@/domain/conflict';
+import type { UserRole } from '@/domain/user';
 import { dateKey } from '@/domain/day-close';
 
 export const jobKeys = {
@@ -187,6 +188,28 @@ export function useProvisionUser() {
   return useMutation({
     mutationFn: (input: { values: Parameters<typeof provisionUserOnServer>[0]; adminId: string }) =>
       provisionUserOnServer(input.values, input.adminId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userKeys.all });
+    },
+  });
+}
+
+export function useUpdateUserRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { userId: string; role: UserRole; adminId: string }) =>
+      updateRemoteUserRole(input.userId, input.role, input.adminId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userKeys.all });
+    },
+  });
+}
+
+export function useResetUserPassword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { userId: string; password: string; adminId: string }) =>
+      resetRemoteUserPassword(input.userId, input.password, input.adminId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.all });
     },
