@@ -24,6 +24,7 @@ import {
 import {
   approveVoidRequest,
   listCollectibleJobs,
+  listCollectionHistory,
   listPendingVoidRequests,
   payJob,
   rejectVoidRequest,
@@ -84,6 +85,7 @@ export const photoKeys = {
 
 export const paymentKeys = {
   collectible: ['payments', 'collectible'] as const,
+  history: ['payments', 'history'] as const,
 };
 
 export const voidRequestKeys = {
@@ -317,6 +319,13 @@ export function useCollectibleJobs() {
   });
 }
 
+export function useCollectionHistory() {
+  return useQuery({
+    queryKey: paymentKeys.history,
+    queryFn: () => listCollectionHistory(),
+  });
+}
+
 export function usePayJob() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -325,6 +334,7 @@ export function usePayJob() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: jobKeys.all });
       queryClient.invalidateQueries({ queryKey: paymentKeys.collectible });
+      queryClient.invalidateQueries({ queryKey: paymentKeys.history });
     },
   });
 }

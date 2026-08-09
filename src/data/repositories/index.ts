@@ -25,7 +25,7 @@ export type { DayClose } from './day-close-repository';
 export type { NewDayClose } from './day-close-repository';
 export type { NewExpense } from './expense-repository';
 export type { InventoryItemPatch, NewInventoryItem } from './inventory-repository';
-export type { NewJob, QueueEntry } from './job-repository';
+export type { NewJob, PaymentHistoryEntry, QueueEntry } from './job-repository';
 export type { NewOutboxEntry } from './outbox-repository';
 export type { NewPayment } from './payment-repository';
 export type { ServicePatch, NewService } from './service-repository';
