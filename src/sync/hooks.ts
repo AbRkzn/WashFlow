@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
+import { hydrateMissingPhotos, processPhotoUploads } from '@/services/photo-upload';
 import { useSessionStore } from '@/stores/session-store';
 import { getSyncSummary, runSync } from '@/sync/engine';
 
@@ -55,6 +56,12 @@ export function useAutoSync(intervalMs = 20_000) {
           queryClient.invalidateQueries();
         }
         queryClient.invalidateQueries({ queryKey: syncKeys.status });
+        processPhotoUploads().catch((error) =>
+          console.warn('Photo upload pass failed (non-fatal)', error),
+        );
+        hydrateMissingPhotos().catch((error) =>
+          console.warn('Photo hydration failed (non-fatal)', error),
+        );
       } catch (error) {
         console.warn('Auto sync failed (non-fatal)', error);
         queryClient.invalidateQueries({ queryKey: syncKeys.status });
