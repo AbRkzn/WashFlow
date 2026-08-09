@@ -62,6 +62,39 @@ async function upsertRow(entity: SyncEntity, row: Record<string, unknown>): Prom
     });
 }
 
+/**
+ * Users are unique by email, not just id. The remote mirror may still hold a
+ * row under a pre-migration id (e.g. seed `seed-washer-*`) while the local
+ * device already migrated that email to the real account id. Resolve by email
+ * first so pulls never trip the `users.email` unique constraint.
+ */
+async function upsertUserRow(entity: SyncEntity, row: Record<string, unknown>): Promise<void> {
+  const id = String(row.id);
+  const email = String(row.email ?? '');
+  const byId = await readRow(entity, id);
+  const byEmail = email && !byId
+    ? await db
+        .select()
+        .from(entity.table)
+        .where(
+          eq((entity.table as never as Record<string, unknown>).email as never, email as never),
+        )
+        .limit(1)
+        .then((rows) => (rows[0] as Record<string, unknown> | undefined) ?? undefined)
+    : undefined;
+  if (!byId && byEmail) {
+    // Adopt the authoritative remote id on the existing email row.
+    await db
+      .update(entity.table)
+      .set({ ...row, id: byEmail.id } as never)
+      .where(
+        eq((entity.table as never as Record<string, unknown>)[entity.idKey] as never, byEmail.id as never),
+      );
+    return;
+  }
+  await upsertRow(entity, row);
+}
+
 async function isDirty(entity: SyncEntity, entityId: string): Promise<boolean> {
   const entries = await outboxRepository.listForEntity(entity.name, entityId);
   return entries.some((entry) => entry.status !== 'synced');
@@ -183,7 +216,11 @@ export async function pullChanges(): Promise<SyncResult> {
       continue;
     }
     const localRow = rowFromRemote(entity.table, remote);
-    await upsertRow(entity, localRow);
+    if (entity.name === 'user') {
+      await upsertUserRow(entity, localRow);
+    } else {
+      await upsertRow(entity, localRow);
+    }
     maxSeq = Math.max(maxSeq, change.serverSeq);
     pulled += 1;
   }
@@ -240,7 +277,11 @@ export async function applyRemote(entityName: string, row: Record<string, unknow
     return;
   }
   const localRow = rowFromRemote(entity.table, row);
-  await upsertRow(entity, localRow);
+  if (entity.name === 'user') {
+    await upsertUserRow(entity, localRow);
+  } else {
+    await upsertRow(entity, localRow);
+  }
 }
 
 /** Clears every queued local change for a row — used when the remote side wins. */
