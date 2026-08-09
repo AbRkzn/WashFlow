@@ -99,6 +99,47 @@ export async function voidJob(jobId: string, actorId: string, reason?: string): 
   });
 }
 
+/**
+ * Manager-authorised direct void (the Day Board "Delete"). Allowed for any
+ * active job status, regardless of pending sync conflicts. Leaves an approved
+ * `void_request` row so day-close reporting still counts it.
+ */
+export async function voidJobAsManager(
+  jobId: string,
+  managerId: string,
+  reason?: string,
+): Promise<void> {
+  const job = await jobRepository.findById(jobId);
+  if (!job) {
+    throw new Error('Job not found.');
+  }
+  if (job.status === 'voided') {
+    throw new Error('This job is already voided.');
+  }
+  const payment = await paymentRepository.findForJob(jobId);
+  if (payment) {
+    await paymentRepository.markVoided(payment.id);
+  }
+  const moved = await jobRepository.transition(jobId, [...VOIDABLE_STATUSES], 'voided');
+  if (!moved) {
+    throw new Error('That job can no longer be voided.');
+  }
+  await voidRequestRepository.create({
+    jobId,
+    requestedBy: managerId,
+    reason: reason ?? null,
+    status: 'approved',
+    resolvedBy: managerId,
+  });
+  await logAudit({
+    actorId: managerId,
+    action: 'job-void-manager',
+    entity: 'job',
+    entityId: jobId,
+    details: { reason: reason ?? null, approval: 'manager' },
+  });
+}
+
 export async function requestVoid(jobId: string, actorId: string, reason?: string): Promise<void> {
   const job = await jobRepository.findById(jobId);
   if (!job) {

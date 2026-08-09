@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 
 import { RoleGuard } from '@/components/role-guard';
 import { SessionHeader } from '@/components/session-header';
+import { VoidRequestModal } from '@/components/void-request-modal';
 import {
   useApproveVoidRequest,
   useDayClose,
@@ -15,6 +16,7 @@ import {
   useRejectVoidRequest,
   useReleaseJob,
   useResolveConflict,
+  useVoidJobAsManager,
   useWashers,
   useWorkingBoard,
 } from '@/data/queries';
@@ -174,13 +176,19 @@ export default function ManagerHome() {
   const forceAssign = useForceAssign();
   const reassignJob = useReassignJob();
   const releaseJob = useReleaseJob();
+  const voidJobAsManager = useVoidJobAsManager();
   const approveVoid = useApproveVoidRequest();
   const rejectVoid = useRejectVoidRequest();
   const resolveConflict = useResolveConflict();
 
   const [picking, setPicking] = useState<PickTarget | null>(null);
   const [detailConflict, setDetailConflict] = useState<ConflictReviewEntry | null>(null);
-  const busy = forceAssign.isPending || reassignJob.isPending || releaseJob.isPending;
+  const [deleteTarget, setDeleteTarget] = useState<WorkingEntry | null>(null);
+  const busy =
+    forceAssign.isPending ||
+    reassignJob.isPending ||
+    releaseJob.isPending ||
+    voidJobAsManager.isPending;
 
   const reportError = (error: unknown) =>
     Alert.alert('Action failed', error instanceof Error ? error.message : 'Something went wrong.');
@@ -220,6 +228,16 @@ export default function ManagerHome() {
     releaseJob
       .mutateAsync({ jobId, actorId })
       .then(() => Alert.alert('Done', 'Job released back to the queue.'))
+      .catch(reportError);
+  };
+
+  const onDeleteJob = (reason: string) => {
+    if (!deleteTarget) return;
+    const { job } = deleteTarget;
+    setDeleteTarget(null);
+    voidJobAsManager
+      .mutateAsync({ jobId: job.id, actorId, reason })
+      .then(() => Alert.alert('Done', 'Job deleted (voided).'))
       .catch(reportError);
   };
 
@@ -337,6 +355,15 @@ export default function ManagerHome() {
                           >
                             <Text className="text-center text-sm font-semibold text-neutral-700 dark:text-neutral-200">
                               Release
+                            </Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => setDeleteTarget(entry)}
+                            disabled={busy}
+                            className="flex-1 rounded-xl border border-red-300 px-4 py-2.5 active:bg-red-50 dark:border-red-900 dark:active:bg-red-950"
+                          >
+                            <Text className="text-center text-sm font-semibold text-red-600 dark:text-red-400">
+                              Delete
                             </Text>
                           </Pressable>
                         </>
@@ -468,6 +495,15 @@ export default function ManagerHome() {
           target={picking}
           onClose={() => setPicking(null)}
           onPick={onPickWasher}
+        />
+
+        <VoidRequestModal
+          visible={deleteTarget !== null}
+          title="Delete job?"
+          plateNumber={deleteTarget?.vehicle.plateNumber ?? ''}
+          busy={voidJobAsManager.isPending}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={onDeleteJob}
         />
       </SafeAreaView>
     </RoleGuard>
