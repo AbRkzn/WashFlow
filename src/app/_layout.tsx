@@ -12,12 +12,29 @@ import { seedIfEmpty } from '@/data/seed';
 import { configureNotifications } from '@/services/notifications';
 import { useSessionStore } from '@/stores/session-store';
 import { useThemeStore } from '@/stores/theme-store';
-import { runSync } from '@/sync/engine';
+import { useAutoSync } from '@/sync/hooks';
 
 const queryClient = new QueryClient();
 
+function AppContent() {
+  const { colorScheme } = useColorScheme();
+  useAutoSync();
+  return (
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="admin" />
+        <Stack.Screen name="manager" />
+        <Stack.Screen name="cashier" />
+        <Stack.Screen name="washer" />
+      </Stack>
+    </ThemeProvider>
+  );
+}
+
 export default function RootLayout() {
-  const { colorScheme, setColorScheme } = useColorScheme();
+  const { setColorScheme } = useColorScheme();
   const theme = useThemeStore((s) => s.theme);
   const [databaseReady, setDatabaseReady] = useState(false);
   const [databaseError, setDatabaseError] = useState(false);
@@ -53,7 +70,6 @@ export default function RootLayout() {
         console.warn('Notification setup failed (non-fatal)', error);
       }
       await useSessionStore.getState().hydrate();
-      runSync().catch((error) => console.warn('Boot sync failed (non-fatal)', error));
     })();
     return () => {
       cancelled = true;
@@ -62,32 +78,23 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <StatusBar style="auto" />
-        {databaseError ? (
-          <View className="flex-1 items-center justify-center bg-neutral-50 px-8 dark:bg-neutral-950">
-            <Text className="text-lg font-semibold text-red-600 dark:text-red-400">
-              Database initialization failed
-            </Text>
-            <Text className="mt-2 text-center text-sm text-neutral-500 dark:text-neutral-400">
-              Restart the app. If it persists, clear the app data and reload.
-            </Text>
-          </View>
-        ) : databaseReady ? (
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="admin" />
-            <Stack.Screen name="manager" />
-            <Stack.Screen name="cashier" />
-            <Stack.Screen name="washer" />
-          </Stack>
-        ) : (
-          <View className="flex-1 items-center justify-center bg-neutral-50 dark:bg-neutral-950">
-            <Text className="text-2xl font-bold text-brand-700 dark:text-brand-400">WashFlow</Text>
-          </View>
-        )}
-      </ThemeProvider>
+      <StatusBar style="auto" />
+      {databaseError ? (
+        <View className="flex-1 items-center justify-center bg-neutral-50 px-8 dark:bg-neutral-950">
+          <Text className="text-lg font-semibold text-red-600 dark:text-red-400">
+            Database initialization failed
+          </Text>
+          <Text className="mt-2 text-center text-sm text-neutral-500 dark:text-neutral-400">
+            Restart the app. If it persists, clear the app data and reload.
+          </Text>
+        </View>
+      ) : databaseReady ? (
+        <AppContent />
+      ) : (
+        <View className="flex-1 items-center justify-center bg-neutral-50 dark:bg-neutral-950">
+          <Text className="text-2xl font-bold text-brand-700 dark:text-brand-400">WashFlow</Text>
+        </View>
+      )}
     </QueryClientProvider>
   );
 }

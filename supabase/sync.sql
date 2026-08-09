@@ -97,8 +97,12 @@ begin
   if p_entity = 'appointment'
      and coalesce(p_row ->> 'deleted_at', '') = ''
      and p_row ->> 'status' = 'booked' then
+    -- NOTE: use concat() here, not ||-chained with ->> . Postgres gives `||`
+    -- and `->>` the same operator precedence (left-associative), so
+    -- `'appointment:' || p_row ->> 'date'` parses as `('appointment:' || p_row) ->> 'date'`,
+    -- and the `text || jsonb` operator tries to cast 'appointment:' to jsonb (22P02).
     perform pg_advisory_xact_lock(
-      hashtextextended('appointment:' || p_row ->> 'date' || ':' || p_row ->> 'slot_start', 0)
+      hashtextextended(concat('appointment:', p_row ->> 'date', ':', p_row ->> 'slot_start'), 0)
     );
     if exists (
       select 1

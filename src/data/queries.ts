@@ -30,6 +30,7 @@ import {
   rejectVoidRequest,
   requestVoid,
   voidJob,
+  voidJobAsManager,
 } from '@/services/payments';
 import {
   bookAppointment,
@@ -344,6 +345,19 @@ export function useVoidJob() {
   return useMutation({
     mutationFn: (input: { jobId: string; actorId: string; reason?: string }) =>
       voidJob(input.jobId, input.actorId, input.reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.all });
+      queryClient.invalidateQueries({ queryKey: paymentKeys.collectible });
+      queryClient.invalidateQueries({ queryKey: voidRequestKeys.pending });
+    },
+  });
+}
+
+export function useVoidJobAsManager() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { jobId: string; actorId: string; reason?: string }) =>
+      voidJobAsManager(input.jobId, input.actorId, input.reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: jobKeys.all });
       queryClient.invalidateQueries({ queryKey: paymentKeys.collectible });

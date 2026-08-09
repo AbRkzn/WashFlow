@@ -17,10 +17,17 @@ export class UserRepository {
   constructor(private readonly db: Database) {}
 
   async upsert(input: UpsertUser): Promise<User> {
-    const existing = await this.findById(input.id);
+    let existing = await this.findById(input.id);
+    // If not found by id, allow a row with the same email to be migrated to the
+    // authoritative account id. This covers demo `seed-washer-*` rows left by
+    // the seed, whose emails now belong to real provisioned accounts.
+    if (!existing) {
+      existing = await this.findByEmail(input.email);
+    }
     if (existing) {
       const record: User = {
         ...existing,
+        id: input.id,
         email: input.email,
         name: input.name,
         role: input.role,
@@ -45,6 +52,11 @@ export class UserRepository {
 
   async findById(id: string): Promise<User | undefined> {
     const rows = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
+    return rows[0];
+  }
+
+  async findByEmail(email: string): Promise<User | undefined> {
+    const rows = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
     return rows[0];
   }
 

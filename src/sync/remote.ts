@@ -20,14 +20,18 @@ export type RemotePushResult =
  * The server may answer a push with a hard conflict (e.g. `job_claimed`,
  * `slot_taken`). That is NOT a network failure — it is a final server
  * decision — so the engine settles the entry instead of retrying it.
+ *
+ * NOTE: PostgREST matches RPC arguments by exact parameter name, so we send
+ * the `p_entity`/`p_row` names declared in sync.sql (a param cannot be named
+ * `row` — it is reserved).
  */
 export async function remotePush(
   entity: string,
   row: Record<string, unknown>,
 ): Promise<RemotePushResult> {
   const { data, error } = await supabase.rpc('sync_upsert', {
-    entity,
-    row,
+    p_entity: entity,
+    p_row: row,
   });
   if (error) {
     throw error;
