@@ -2,7 +2,7 @@ import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
-import { customers, jobs, services, vehicles, type Customer, type Job, type Service, type Vehicle } from '@/data/schema';
+import { customers, jobs, payments, services, vehicles, type Customer, type Job, type Payment, type Service, type Vehicle } from '@/data/schema';
 import { type JobStatus, WORKING_STATUSES } from '@/domain/job';
 import { enqueueChange } from '@/sync/outbox';
 
@@ -21,6 +21,14 @@ export interface QueueEntry {
   vehicle: Vehicle;
   customer: Customer;
   service: Service | null;
+}
+
+export interface PaymentHistoryEntry {
+  job: Job;
+  vehicle: Vehicle;
+  customer: Customer;
+  service: Service | null;
+  payment: Payment;
 }
 
 const JOB_SELECT = {
@@ -282,5 +290,32 @@ export class JobRepository {
       .from(jobs)
       .where(and(eq(jobs.status, status), isNull(jobs.deletedAt)));
     return rows[0]?.count ?? 0;
+  }
+
+  /** Most recent paid jobs with their payment rows — for the Collect history. */
+  async listPaidWithDetails(limit = 20): Promise<PaymentHistoryEntry[]> {
+    return this.db
+      .select({
+        job: jobs,
+        vehicle: vehicles,
+        customer: customers,
+        service: services,
+        payment: payments,
+      })
+      .from(jobs)
+      .innerJoin(payments, eq(jobs.id, payments.jobId))
+      .innerJoin(vehicles, eq(jobs.vehicleId, vehicles.id))
+      .innerJoin(customers, eq(jobs.customerId, customers.id))
+      .leftJoin(services, eq(jobs.serviceId, services.id))
+      .where(
+        and(
+          eq(jobs.status, 'paid'),
+          isNull(jobs.deletedAt),
+          isNull(payments.deletedAt),
+          isNull(payments.voidedAt),
+        ),
+      )
+      .orderBy(sql`${payments.paidAt} desc`)
+      .limit(limit);
   }
 }

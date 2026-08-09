@@ -4,6 +4,7 @@ import {
   PaymentRepository,
   UserRepository,
   VoidRequestRepository,
+  type PaymentHistoryEntry,
   type QueueEntry,
   type VoidRequestEntry,
 } from '@/data/repositories';
@@ -20,8 +21,25 @@ export interface PendingVoidEntry extends VoidRequestEntry {
   requesterName: string | null;
 }
 
+export interface CollectionHistoryEntry extends PaymentHistoryEntry {
+  receivedByName: string | null;
+}
+
 export async function listCollectibleJobs(): Promise<QueueEntry[]> {
   return jobRepository.listCompletedWithDetails();
+}
+
+/** Most recent paid jobs with collector name — for the Collect history. */
+export async function listCollectionHistory(limit = 20): Promise<CollectionHistoryEntry[]> {
+  const entries = await jobRepository.listPaidWithDetails(limit);
+  const users = await userRepository.listAll();
+  const nameById = new Map(users.map((u) => [u.id, u.name]));
+  return entries.map((entry) => ({
+    ...entry,
+    receivedByName: entry.payment.receivedBy
+      ? (nameById.get(entry.payment.receivedBy) ?? null)
+      : null,
+  }));
 }
 
 export async function payJob(jobId: string, actorId: string): Promise<void> {
