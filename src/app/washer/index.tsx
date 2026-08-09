@@ -1,6 +1,8 @@
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState } from 'react';
 
+import { PhotoViewerModal } from '@/components/photo-viewer-modal';
 import { RoleGuard } from '@/components/role-guard';
 import { SessionHeader } from '@/components/session-header';
 import {
@@ -48,6 +50,7 @@ function JobCard({
   photoBusy?: boolean;
 }) {
   const { data: photos } = useJobPhotos(enablePhotos ? entry.job.id : '');
+  const [viewingKind, setViewingKind] = useState<PhotoKind | null>(null);
   const beforeCount = photos?.filter((photo) => photo.kind === 'before').length ?? 0;
   const afterCount = photos?.filter((photo) => photo.kind === 'after').length ?? 0;
 
@@ -73,7 +76,7 @@ function JobCard({
       {enablePhotos && onAddPhoto ? (
         <View className="mt-3 flex-row gap-2">
           <Pressable
-            onPress={() => onAddPhoto('before')}
+            onPress={() => (beforeCount > 0 ? setViewingKind('before') : onAddPhoto('before'))}
             disabled={photoBusy || beforeCount >= 2}
             className="flex-1 rounded-xl border border-neutral-300 px-4 py-2 active:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:active:bg-neutral-800"
           >
@@ -82,7 +85,7 @@ function JobCard({
             </Text>
           </Pressable>
           <Pressable
-            onPress={() => onAddPhoto('after')}
+            onPress={() => (afterCount > 0 ? setViewingKind('after') : onAddPhoto('after'))}
             disabled={photoBusy || afterCount >= 2}
             className="flex-1 rounded-xl border border-neutral-300 px-4 py-2 active:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:active:bg-neutral-800"
           >
@@ -92,6 +95,17 @@ function JobCard({
           </Pressable>
         </View>
       ) : null}
+
+      <PhotoViewerModal
+        visible={viewingKind !== null}
+        onClose={() => setViewingKind(null)}
+        photos={photos ?? []}
+        jobLabel={`${entry.vehicle.plateNumber} · ${entry.customer.name}`}
+        onAddPhoto={
+          viewingKind && onAddPhoto ? () => onAddPhoto(viewingKind) : undefined
+        }
+        kind={viewingKind ?? undefined}
+      />
 
       {buttonLabel && onButton ? (
         <Pressable
@@ -153,30 +167,21 @@ export default function WasherHome() {
       mutation.mutateAsync(vars).then(() => Alert.alert('Done', success)).catch(reportError);
 
   const onAddPhoto = (jobId: string, kind: PhotoKind) => {
+    const add = (uri: string | null) => {
+      if (!uri) return;
+      addPhoto
+        .mutateAsync({ jobId, kind, uri })
+        .then(() => Alert.alert('Done', `${kind} photo added.`))
+        .catch(reportError);
+    };
     Alert.alert(`Add ${kind} photo`, undefined, [
       {
         text: 'Take photo',
-        onPress: () => {
-          capturePhoto()
-            .then((uri) => {
-              if (!uri) return;
-              return addPhoto.mutateAsync({ jobId, kind, uri });
-            })
-            .then(() => Alert.alert('Done', `${kind} photo added.`))
-            .catch(reportError);
-        },
+        onPress: () => capturePhoto().then(add).catch(reportError),
       },
       {
         text: 'Choose from library',
-        onPress: () => {
-          pickPhotoFromLibrary()
-            .then((uri) => {
-              if (!uri) return;
-              return addPhoto.mutateAsync({ jobId, kind, uri });
-            })
-            .then(() => Alert.alert('Done', `${kind} photo added.`))
-            .catch(reportError);
-        },
+        onPress: () => pickPhotoFromLibrary().then(add).catch(reportError),
       },
       { text: 'Cancel', style: 'cancel' },
     ]);
