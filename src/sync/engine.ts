@@ -3,12 +3,12 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/data/db';
 import { OutboxRepository, SyncStateRepository } from '@/data/repositories';
 import { ConflictReviewRepository } from '@/data/repositories/conflict-repository';
-import type { OutboxRow } from '@/data/schema';
 import { SYNC_STATE_KEYS } from '@/data/schema';
 import { conflictKindForEntity, describeConflict, type ConflictKind } from '@/domain/conflict';
 import { reflowAppointmentOnConflict } from '@/services/appointments';
 import { dbColumnName, entityByName, rowFromRemote, rowToRemote, type SyncEntity } from '@/sync/entities';
 import { remotePull, remotePush } from '@/sync/remote';
+import { backoffMs, coalescePending } from '@/sync/sync-logic';
 
 const outboxRepository = new OutboxRepository(db);
 const syncStateRepository = new SyncStateRepository(db);
@@ -65,18 +65,6 @@ async function upsertRow(entity: SyncEntity, row: Record<string, unknown>): Prom
 async function isDirty(entity: SyncEntity, entityId: string): Promise<boolean> {
   const entries = await outboxRepository.listForEntity(entity.name, entityId);
   return entries.some((entry) => entry.status !== 'synced');
-}
-
-function backoffMs(attemptCount: number): number {
-  return Math.min(60_000, 1_000 * 2 ** attemptCount);
-}
-
-function coalescePending(entries: OutboxRow[]): OutboxRow[] {
-  const latest = new Map<string, OutboxRow>();
-  for (const entry of entries) {
-    latest.set(`${entry.entity}:${entry.entityId}`, entry);
-  }
-  return Array.from(latest.values()).sort((a, b) => a.createdAt - b.createdAt);
 }
 
 /**
