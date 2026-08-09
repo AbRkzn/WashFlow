@@ -44,3 +44,13 @@ example
 
 # supabase cli temp
 supabase/.temp/
+
+# sync diagnostic scripts + dumps (dev-only, never commit)
+/scripts/sync-*.mjs
+/scripts/sync-*.out.txt
+/scripts/state*.txt
+/scripts/mirror-*.json
+/scripts/auth-users.json
+/scripts/deployed-funcs-raw.json
+/scripts/exposed-check.json
+/scripts/provision-result.txt
