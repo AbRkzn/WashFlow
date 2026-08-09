@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createRemoteJWKSet, jwtVerify } from 'npm:jose@5';
 
 const VALID_ROLES = ['admin', 'manager', 'cashier', 'washer'] as const;
 type Role = (typeof VALID_ROLES)[number];
@@ -8,6 +9,9 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const jwks = createRemoteJWKSet(new URL(`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`));
 
 interface ProvisionRequest {
   email: string;
@@ -25,22 +29,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Resolve the caller from the bearer token; only admins may provision.
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return json({ error: 'Missing bearer token' }, 401, CORS_HEADERS);
-    }
-
-    const callerClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      authHeader.slice('Bearer '.length),
-      { auth: { autoRefreshToken: false, persistSession: false } },
-    );
-    const { data: caller, error: callerError } = await callerClient.auth.getUser();
-    if (callerError || !caller.user) {
-      return json({ error: 'Invalid caller session' }, 401, CORS_HEADERS);
-    }
-    if (caller.user.app_metadata.role !== 'admin') {
+    // Verify the caller's JWT against the project JWKS and enforce admin role.
+    const callerRole = await getCallerRole(req);
+    if (callerRole !== 'admin') {
       return json({ error: 'Admin role required' }, 403, CORS_HEADERS);
     }
 
@@ -84,4 +75,27 @@ function json(payload: unknown, status: number, headers: Record<string, string>)
     status,
     headers: { 'Content-Type': 'application/json', ...headers },
   });
+}
+
+interface JwtPayload {
+  sub?: string;
+  email?: string;
+  role?: string;
+  app_metadata?: Record<string, unknown>;
+}
+
+async function getCallerRole(req: Request): Promise<string | null> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  try {
+    const { payload } = await jwtVerify(authHeader.slice('Bearer '.length), jwks, {
+      issuer: `${SUPABASE_URL}/auth/v1`,
+      audience: 'authenticated',
+    });
+    const claims = payload as JwtPayload;
+    return claims.app_metadata?.role ?? null;
+  } catch (error) {
+    console.error('Caller JWT verification failed', error);
+    return null;
+  }
 }
