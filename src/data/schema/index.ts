@@ -9,6 +9,7 @@ export * from './inventory-items';
 export * from './jobs';
 export * from './outbox';
 export * from './payments';
+export * from './photo-uploads';
 export * from './photos';
 export * from './recent-plates';
 export * from './services';

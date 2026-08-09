@@ -14,6 +14,7 @@ export const photos = sqliteTable('photos', {
     .references(() => jobs.id),
   kind: text('kind').$type<PhotoKind>().notNull(),
   uri: text('uri').notNull(),
+  uploadedAt: integer('uploaded_at'),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
   ...syncColumns,

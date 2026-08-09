@@ -9,6 +9,7 @@ export { JobRepository } from './job-repository';
 export { OutboxRepository } from './outbox-repository';
 export { PaymentRepository } from './payment-repository';
 export { PhotoRepository } from './photo-repository';
+export { PhotoUploadRepository } from './photo-upload-repository';
 export { RecentPlateRepository } from './recent-plate-repository';
 export { ServiceRepository } from './service-repository';
 export { SettingsRepository } from './settings-repository';
