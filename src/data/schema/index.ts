@@ -13,6 +13,7 @@ export * from './photo-uploads';
 export * from './photos';
 export * from './push-tokens';
 export * from './recent-plates';
+export * from './service-inventory';
 export * from './services';
 export * from './settings';
 export * from './stock-adjustments';

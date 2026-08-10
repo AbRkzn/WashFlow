@@ -9,6 +9,7 @@ import {
   JobRepository,
   PaymentRepository,
   RecentPlateRepository,
+  ServiceInventoryRepository,
   ServiceRepository,
   SettingsRepository,
   StockAdjustmentRepository,
@@ -147,6 +148,27 @@ export async function seedIfEmpty(db: Database): Promise<void> {
   const premium = byService.get('Premium Detail');
   if (!express || !fullDetail || !premium) {
     return;
+  }
+
+  // ── Service recipes (auto-deduct inventory) ─────────────────────────────
+  const serviceRecipes = new ServiceInventoryRepository(db);
+  if ((await serviceRecipes.listAll()).length === 0) {
+    const byItemName = new Map((await inventory.listAll()).map((item) => [item.name, item]));
+    const shampoo = byItemName.get('Car shampoo');
+    const towels = byItemName.get('Microfiber towels');
+    const protectant = byItemName.get('Interior protectant');
+    if (express && shampoo) {
+      await serviceRecipes.create({ serviceId: express.id, inventoryItemId: shampoo.id, quantityUsed: 1 });
+    }
+    if (fullDetail && shampoo && towels) {
+      await serviceRecipes.create({ serviceId: fullDetail.id, inventoryItemId: shampoo.id, quantityUsed: 1 });
+      await serviceRecipes.create({ serviceId: fullDetail.id, inventoryItemId: towels.id, quantityUsed: 2 });
+    }
+    if (premium && shampoo && towels && protectant) {
+      await serviceRecipes.create({ serviceId: premium.id, inventoryItemId: shampoo.id, quantityUsed: 1 });
+      await serviceRecipes.create({ serviceId: premium.id, inventoryItemId: towels.id, quantityUsed: 3 });
+      await serviceRecipes.create({ serviceId: premium.id, inventoryItemId: protectant.id, quantityUsed: 1 });
+    }
   }
 
   const vehicleRows: { customerId: string; vehicleId: string }[] = [];

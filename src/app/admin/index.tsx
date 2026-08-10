@@ -11,6 +11,7 @@ const quickLinks = [
   { label: 'Manager — Day Overview', href: '/manager', icon: 'bar-chart-outline' },
   { label: 'Washer — Job Queue', href: '/washer', icon: 'sparkles-outline' },
   { label: 'Inventory', href: '/admin/inventory', icon: 'cube-outline' },
+  { label: 'Service recipes', href: '/admin/service-inventory', icon: 'flask-outline' },
   { label: 'Manage users', href: '/admin/users', icon: 'people-outline' },
   { label: 'Closed Days — Reopen', href: '/admin/day-closes', icon: 'calendar-outline' },
 ] as const;

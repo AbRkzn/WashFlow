@@ -7,6 +7,7 @@ import { inventoryItems } from './inventory-items';
 import { jobs } from './jobs';
 import { payments } from './payments';
 import { photos } from './photos';
+import { serviceInventoryItems } from './service-inventory';
 import { services } from './services';
 import { stockAdjustments } from './stock-adjustments';
 import { users } from './users';
@@ -112,10 +113,23 @@ export const voidRequestRelations = relations(voidRequests, ({ one }) => ({
 
 export const serviceRelations = relations(services, ({ many }) => ({
   jobs: many(jobs),
+  inventoryUsages: many(serviceInventoryItems),
 }));
 
 export const inventoryItemRelations = relations(inventoryItems, ({ many }) => ({
   stockAdjustments: many(stockAdjustments),
+  serviceUsages: many(serviceInventoryItems),
+}));
+
+export const serviceInventoryItemRelations = relations(serviceInventoryItems, ({ one }) => ({
+  service: one(services, {
+    fields: [serviceInventoryItems.serviceId],
+    references: [services.id],
+  }),
+  inventoryItem: one(inventoryItems, {
+    fields: [serviceInventoryItems.inventoryItemId],
+    references: [inventoryItems.id],
+  }),
 }));
 
 export const stockAdjustmentRelations = relations(stockAdjustments, ({ one }) => ({
