@@ -2,10 +2,9 @@ import '@/global.css';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { StatusBar, Text, View } from 'react-native';
 
 import { db, initDatabase } from '@/data/db';
 import { seedIfEmpty } from '@/data/seed';
@@ -21,14 +20,20 @@ function AppContent() {
   useAutoSync();
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="admin" />
-        <Stack.Screen name="manager" />
-        <Stack.Screen name="cashier" />
-        <Stack.Screen name="washer" />
-      </Stack>
+      <View className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+        <StatusBar
+          barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
+          backgroundColor={colorScheme === 'dark' ? '#0A0A0A' : '#FAFAFA'}
+        />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="admin" />
+          <Stack.Screen name="manager" />
+          <Stack.Screen name="cashier" />
+          <Stack.Screen name="washer" />
+        </Stack>
+      </View>
     </ThemeProvider>
   );
 }
@@ -78,7 +83,6 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StatusBar style="auto" />
       {databaseError ? (
         <View className="flex-1 items-center justify-center bg-neutral-50 px-8 dark:bg-neutral-950">
           <Text className="text-lg font-semibold text-red-600 dark:text-red-400">
