@@ -3,6 +3,7 @@ import { JobRepository, UserRepository, VehicleRepository, type QueueEntry } fro
 import type { User } from '@/data/schema';
 import { logAudit } from '@/services/audit';
 import { notifyJobAssigned } from '@/services/notifications';
+import { sendPushToUser } from '@/services/push';
 
 const jobRepository = new JobRepository(db);
 const userRepository = new UserRepository(db);
@@ -32,6 +33,12 @@ async function notifyAssignment(jobId: string, washerId: string): Promise<void> 
     if (!vehicle) return;
     const washer = await userRepository.findById(washerId);
     await notifyJobAssigned(vehicle.plateNumber, washer?.name ?? 'washer');
+    await sendPushToUser({
+      userId: washerId,
+      title: 'New job assigned',
+      body: `${vehicle.plateNumber} is assigned to you.`,
+      data: { jobId, plate: vehicle.plateNumber },
+    });
   } catch (error) {
     console.warn('Assignment notification failed (non-fatal)', error);
   }

@@ -28,6 +28,45 @@ function StatRow({ label, value, negative }: { label: string; value: string; neg
   );
 }
 
+function parseMethodBreakdown(raw: string | null | undefined): Record<string, number> {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+
+function MethodBreakdown({ raw }: { raw: string | null | undefined }) {
+  const breakdown = parseMethodBreakdown(raw);
+  const entries = Object.entries(breakdown).filter(([, cents]) => cents > 0);
+  if (entries.length === 0) {
+    return (
+      <StatRow label="By method" value={formatPesos(0)} />
+    );
+  }
+  const total = entries.reduce((sum, [, cents]) => sum + cents, 0);
+  return (
+    <View className="py-2">
+      <Text className="mb-1 text-sm text-neutral-500 dark:text-neutral-400">By method</Text>
+      {entries.map(([method, cents]) => (
+        <View key={method} className="flex-row items-center justify-between py-0.5 pl-3">
+          <Text className="text-sm capitalize text-neutral-600 dark:text-neutral-300">{method}</Text>
+          <Text className="text-sm font-medium text-neutral-900 dark:text-white">
+            {formatPesos(cents)}
+          </Text>
+        </View>
+      ))}
+      <View className="mt-1 flex-row items-center justify-between border-t border-neutral-100 pl-3 pt-1 dark:border-neutral-800">
+        <Text className="text-sm text-neutral-500 dark:text-neutral-400">Total</Text>
+        <Text className="text-sm font-semibold text-neutral-900 dark:text-white">
+          {formatPesos(total)}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 export default function ManagerDayClose() {
   const actorId = useSessionStore((s) => s.user?.id ?? '');
   const today = dateKey();
@@ -88,6 +127,7 @@ export default function ManagerDayClose() {
                 </View>
                 <StatRow label="Jobs finished" value={String(close.jobCount)} />
                 <StatRow label="Revenue" value={formatPesos(close.revenueCents)} />
+                <MethodBreakdown raw={close.revenueByMethodCents} />
                 <StatRow label="Voids" value={`${close.voidedCount} · ${formatPesos(close.voidedAmountCents)}`} />
                 <StatRow label="Expenses" value={formatPesos(close.expensesCents)} />
                 <View className="my-2 h-px bg-neutral-200 dark:bg-neutral-800" />
@@ -148,6 +188,7 @@ export default function ManagerDayClose() {
                   <>
                     <StatRow label="Jobs finished" value={String(report.jobCount)} />
                     <StatRow label="Revenue" value={formatPesos(report.revenueCents)} />
+                    <MethodBreakdown raw={JSON.stringify(report.revenueByMethodCents)} />
                     <StatRow
                       label="Voids"
                       value={`${report.voidedCount} · ${formatPesos(report.voidedAmountCents)}`}

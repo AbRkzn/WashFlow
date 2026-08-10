@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import type { AppUser } from '@/domain/user';
 import { getStoredUser, signInWithPassword, signOut } from '@/services/auth';
+import { registerDevicePush, unregisterDevicePush } from '@/services/push';
 
 export type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -21,6 +22,9 @@ export const useSessionStore = create<SessionState>((set) => ({
     try {
       const user = await getStoredUser();
       set({ user, status: user ? 'authenticated' : 'unauthenticated' });
+      if (user) {
+        await registerDevicePush(user.id);
+      }
     } catch (error) {
       console.error('Session hydrate failed', error);
       set({ user: null, status: 'unauthenticated' });
@@ -31,6 +35,7 @@ export const useSessionStore = create<SessionState>((set) => ({
     try {
       const user = await signInWithPassword(email, password);
       set({ user, status: 'authenticated' });
+      await registerDevicePush(user.id);
       return user;
     } catch (error) {
       set({ status: 'unauthenticated' });
@@ -38,7 +43,11 @@ export const useSessionStore = create<SessionState>((set) => ({
     }
   },
   signOut: async () => {
+    const userId = useSessionStore.getState().user?.id;
     await signOut();
     set({ user: null, status: 'unauthenticated' });
+    if (userId) {
+      await unregisterDevicePush(userId);
+    }
   },
 }));

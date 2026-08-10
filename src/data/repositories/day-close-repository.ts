@@ -13,6 +13,7 @@ export interface NewDayClose {
   closedAt: number;
   jobCount: number;
   revenueCents: number;
+  revenueByMethodCents: Record<string, number>;
   voidedCount: number;
   voidedAmountCents: number;
   expensesCents: number;
@@ -35,7 +36,12 @@ export class DayCloseRepository {
   }
 
   async create(input: NewDayClose): Promise<DayClose> {
-    const record: DayClose = { ...baseRecord(), ...input, notes: input.notes ?? null };
+    const record: DayClose = {
+      ...baseRecord(),
+      ...input,
+      revenueByMethodCents: JSON.stringify(input.revenueByMethodCents ?? {}),
+      notes: input.notes ?? null,
+    };
     await this.db.insert(dayCloses).values(record);
     await enqueueChange('day_close', record.id, 'upsert');
     return record;

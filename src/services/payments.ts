@@ -9,7 +9,7 @@ import {
   type VoidRequestEntry,
 } from '@/data/repositories';
 import { VOIDABLE_STATUSES } from '@/domain/job';
-import { assertCanCashierVoid } from '@/domain/payment';
+import { assertCanCashierVoid, type PaymentMethod } from '@/domain/payment';
 import { logAudit } from '@/services/audit';
 
 const jobRepository = new JobRepository(db);
@@ -42,7 +42,7 @@ export async function listCollectionHistory(limit = 20): Promise<CollectionHisto
   }));
 }
 
-export async function payJob(jobId: string, actorId: string): Promise<void> {
+export async function payJob(jobId: string, actorId: string, method: PaymentMethod = 'cash'): Promise<void> {
   const job = await jobRepository.findById(jobId);
   if (!job) {
     throw new Error('Job not found.');
@@ -54,7 +54,7 @@ export async function payJob(jobId: string, actorId: string): Promise<void> {
   await paymentRepository.add({
     jobId,
     amountCents: job.priceCents,
-    method: 'cash',
+    method,
     receivedBy: actorId,
   });
   await logAudit({
@@ -62,7 +62,7 @@ export async function payJob(jobId: string, actorId: string): Promise<void> {
     action: 'job-paid',
     entity: 'job',
     entityId: jobId,
-    details: { amountCents: job.priceCents, method: 'cash' },
+    details: { amountCents: job.priceCents, method },
   });
 }
 

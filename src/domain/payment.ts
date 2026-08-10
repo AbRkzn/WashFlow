@@ -1,12 +1,17 @@
 import type { JobStatus } from './job';
 
-export const PAYMENT_METHODS = ['cash'] as const;
+export const PAYMENT_METHODS = ['cash', 'gcash', 'maya', 'card'] as const;
 
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   cash: 'Cash',
+  gcash: 'GCash',
+  maya: 'Maya',
+  card: 'Card',
 };
+
+export const DEFAULT_PAYMENT_METHOD: PaymentMethod = 'cash';
 
 export const VOID_REQUEST_STATUSES = ['pending', 'approved', 'rejected'] as const;
 

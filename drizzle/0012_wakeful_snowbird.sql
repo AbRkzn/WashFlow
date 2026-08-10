@@ -1,0 +1,1 @@
+ALTER TABLE `day_closes` ADD `revenue_by_method_cents` text DEFAULT '{}' NOT NULL;

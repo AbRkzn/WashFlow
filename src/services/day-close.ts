@@ -46,6 +46,11 @@ export async function computeDayReport(day: string): Promise<DayReport> {
   const revenueCents = payments
     .filter((payment) => payment.voidedAt === null)
     .reduce((sum, payment) => sum + payment.amountCents, 0);
+  const revenueByMethodCents: Record<string, number> = {};
+  for (const payment of payments) {
+    if (payment.voidedAt !== null) continue;
+    revenueByMethodCents[payment.method] = (revenueByMethodCents[payment.method] ?? 0) + payment.amountCents;
+  }
   const voidedAmountCents = voided.reduce((sum, job) => sum + job.priceCents, 0);
   const expensesCents = expenses.reduce((sum, expense) => sum + expense.amountCents, 0);
 
@@ -53,6 +58,7 @@ export async function computeDayReport(day: string): Promise<DayReport> {
     day,
     jobCount: finished.length,
     revenueCents,
+    revenueByMethodCents,
     voidedCount: voided.length,
     voidedAmountCents,
     expensesCents,

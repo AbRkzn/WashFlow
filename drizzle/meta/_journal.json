@@ -85,6 +85,20 @@
       "when": 1786240699410,
       "tag": "0011_chubby_the_captain",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1786322682169,
+      "tag": "0012_wakeful_snowbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1786323055267,
+      "tag": "0013_bitter_thunderbird",
+      "breakpoints": true
     }
   ]
 }

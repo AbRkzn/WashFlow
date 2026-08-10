@@ -8,6 +8,9 @@ verify_jwt = true
 [functions.admin-users]
 verify_jwt = true
 
+[functions.send-push]
+verify_jwt = true
+
 # Photo binaries upload to this bucket; create it in the dashboard
 # (Storage -> New bucket -> "photos", public: false).
 [storage.buckets.photos]
