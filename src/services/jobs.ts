@@ -3,6 +3,7 @@ import { JobRepository, UserRepository, VehicleRepository, type QueueEntry } fro
 import type { User } from '@/data/schema';
 import { logAudit } from '@/services/audit';
 import { notifyJobAssigned } from '@/services/notifications';
+import { notifyReadyForPickup } from '@/services/customer-notices';
 import { sendPushToUser } from '@/services/push';
 
 const jobRepository = new JobRepository(db);
@@ -100,6 +101,7 @@ export async function approveQuality(jobId: string, actorId: string): Promise<vo
     throw new Error('Only a job in quality check can be marked complete.');
   }
   await logAudit({ actorId, action: 'job-completed', entity: 'job', entityId: jobId });
+  await notifyReadyForPickup(jobId);
 }
 
 export async function forceAssign(jobId: string, washerId: string, actorId: string): Promise<void> {

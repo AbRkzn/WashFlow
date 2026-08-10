@@ -5,6 +5,7 @@ import {
   Pressable,
   RefreshControl,
   SectionList,
+  Share,
   Text,
   View,
 } from 'react-native';
@@ -23,6 +24,7 @@ import {
 } from '@/data/queries';
 import { SessionHeader } from '@/components/session-header';
 import { useSessionStore } from '@/stores/session-store';
+import { buildNoticeForJob } from '@/services/customer-notices';
 import type { QueueEntry } from '@/data/repositories';
 import type { CollectionHistoryEntry } from '@/services/payments';
 import type { PaymentMethod } from '@/domain/payment';
@@ -75,6 +77,16 @@ export default function CashierCollectScreen() {
         Alert.alert('Void request failed', error instanceof Error ? error.message : 'Something went wrong.'),
       )
       .finally(() => setVoidingJobId(null));
+  };
+
+  const handleNotifyCustomer = async (jobId: string) => {
+    try {
+      const notice = await buildNoticeForJob(jobId, 'ready');
+      await Share.share({ message: notice.text });
+    } catch (error) {
+      console.warn('Customer notice failed (non-fatal)', error);
+      Alert.alert('Notice failed', error instanceof Error ? error.message : 'Something went wrong.');
+    }
   };
 
   const sections = [
@@ -157,6 +169,14 @@ export default function CashierCollectScreen() {
           >
             <Text className="text-sm font-semibold text-white">
               Collect · {formatPesos(item.job.priceCents)}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => handleNotifyCustomer(item.job.id)}
+            className="rounded-xl border border-neutral-300 px-4 py-3 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
+          >
+            <Text className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+              Notify
             </Text>
           </Pressable>
           <Pressable
