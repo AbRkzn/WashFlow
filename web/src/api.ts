@@ -37,7 +37,7 @@ export async function fetchDashboardData(): Promise<DashboardData> {
   const byEntity = new Map<string, Record<string, unknown>[]>();
   for (const entry of entries) {
     const bucket = byEntity.get(entry.entity) ?? [];
-    bucket.push(entry.row);
+    bucket.push(entry.payload);
     byEntity.set(entry.entity, bucket);
   }
 

@@ -6,6 +6,7 @@ import { InventoryView } from './views/InventoryView';
 import { RevenueView } from './views/RevenueView';
 import { TodayView } from './views/TodayView';
 import { supabase } from './supabase';
+import { THEME_LABEL, useTheme } from './theme';
 
 type ViewId = 'today' | 'revenue' | 'dayclose' | 'inventory';
 
@@ -15,6 +16,15 @@ const VIEWS: { id: ViewId; label: string }[] = [
   { id: 'dayclose', label: 'Day close' },
   { id: 'inventory', label: 'Inventory' },
 ];
+
+function ThemeToggle() {
+  const { theme, cycleTheme } = useTheme();
+  return (
+    <button className="btn btn-ghost" onClick={cycleTheme} title={`Theme: ${THEME_LABEL[theme]}`}>
+      {theme === 'dark' ? '☀ Light' : theme === 'light' ? '🌙 Dark' : '⚙ System'}
+    </button>
+  );
+}
 
 function SignInScreen() {
   const [email, setEmail] = useState('');
@@ -39,6 +49,9 @@ function SignInScreen() {
   return (
     <div className="auth-wrap">
       <div className="auth-card">
+        <div className="auth-card-top">
+          <ThemeToggle />
+        </div>
         <div className="brand-mark">WF</div>
         <h1 className="auth-title">WashFlow</h1>
         <p className="auth-sub">Manager dashboard</p>
@@ -130,6 +143,7 @@ function Dashboard() {
         <div className="topbar-actions">
           <span className="user-chip">{user.email}</span>
           {user.role && <span className="role-chip">{user.role}</span>}
+          <ThemeToggle />
           <button className="btn btn-ghost" onClick={handleSignOut}>
             Sign out
           </button>
