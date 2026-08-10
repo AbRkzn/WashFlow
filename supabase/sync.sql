@@ -92,8 +92,8 @@ begin
     end if;
   end if;
 
-  -- P8b: first-write-wins for appointment slots. The same slot booked on two
-  -- devices resolves here; the loser is auto-reflowed client-side.
+  -- P8b + T2b: first-write-wins for appointment times. Windows overlap when
+  -- `a_start < b_end and b_start < a_end`; the loser is auto-reflowed client-side.
   if p_entity = 'appointment'
      and coalesce(p_row ->> 'deleted_at', '') = ''
      and p_row ->> 'status' = 'booked' then
@@ -112,12 +112,19 @@ begin
         and coalesce(m.row ->> 'deleted_at', '') = ''
         and m.row ->> 'status' = 'booked'
         and m.row ->> 'date' = p_row ->> 'date'
-        and m.row ->> 'slot_start' = p_row ->> 'slot_start'
+        and (
+          (p_row ->> 'slot_start')::bigint
+            < (m.row ->> 'slot_start')::bigint
+              + coalesce((m.row ->> 'duration_minutes')::bigint, 30) * 60000
+          and (m.row ->> 'slot_start')::bigint
+            < (p_row ->> 'slot_start')::bigint
+              + coalesce((p_row ->> 'duration_minutes')::bigint, 30) * 60000
+        )
     ) then
       return jsonb_build_object(
         'ok', false,
         'code', 'slot_taken',
-        'message', 'This appointment slot was already booked.'
+        'message', 'This appointment time was already booked.'
       );
     end if;
   end if;

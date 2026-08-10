@@ -13,6 +13,7 @@ import type { BookAppointmentResult } from '@/services/appointments';
 import { shiftDateKey, todayKey } from '@/services/appointments';
 import { useSessionStore } from '@/stores/session-store';
 import { formatPesos } from '@/utils/money';
+import { formatSlotTime } from '@/domain/appointment';
 
 function formatDateLabel(date: string): string {
   const d = new Date(`${date}T00:00:00`);
@@ -22,6 +23,7 @@ function formatDateLabel(date: string): string {
 interface BookTarget {
   slotStart: number;
   timeLabel: string;
+  freeForm: boolean;
 }
 
 export default function CashierAppointmentsScreen() {
@@ -66,6 +68,22 @@ export default function CashierAppointmentsScreen() {
       <SessionHeader />
       <View className="flex-row items-center justify-between px-4 pt-3">
         <Text className="text-lg font-bold text-neutral-900 dark:text-white">Appointments</Text>
+      </View>
+      <View className="px-4 pt-2">
+        <Pressable
+          onPress={() =>
+            setBookTarget({
+              slotStart: Date.now(),
+              timeLabel: formatSlotTime(Date.now()),
+              freeForm: true,
+            })
+          }
+          className="items-center rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 active:opacity-80 dark:border-brand-900 dark:bg-brand-950"
+        >
+          <Text className="text-sm font-semibold text-brand-700 dark:text-brand-300">
+            Custom time · pick any hour and duration
+          </Text>
+        </Pressable>
       </View>
       <View className="flex-row items-center justify-between px-4 py-2">
         <Pressable
@@ -113,7 +131,11 @@ export default function CashierAppointmentsScreen() {
                   ) : (
                     <Pressable
                       onPress={() =>
-                        setBookTarget({ slotStart: slot.slotStart, timeLabel: slot.timeLabel })
+                        setBookTarget({
+                          slotStart: slot.slotStart,
+                          timeLabel: slot.timeLabel,
+                          freeForm: false,
+                        })
                       }
                       className="rounded-lg bg-brand-600 px-4 py-2 active:bg-brand-700"
                     >
@@ -173,10 +195,12 @@ export default function CashierAppointmentsScreen() {
       )}
 
       <AppointmentBookModal
+        key={bookTarget ? `${bookTarget.slotStart}-${bookTarget.freeForm}` : 'closed'}
         visible={bookTarget !== null}
         date={date}
         slotStart={bookTarget?.slotStart ?? 0}
         slotTimeLabel={bookTarget?.timeLabel ?? ''}
+        freeForm={bookTarget?.freeForm ?? false}
         onClose={() => setBookTarget(null)}
         onBooked={handleBooked}
       />

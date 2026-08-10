@@ -102,6 +102,32 @@ export class AppointmentRepository {
     return rows[0];
   }
 
+  /**
+   * First booked appointment whose window [slotStart, slotStart+duration)
+   * overlaps the given [start, start+duration) window (free-form support).
+   */
+  async findConflicting(
+    date: string,
+    start: number,
+    durationMinutes: number,
+  ): Promise<Appointment | undefined> {
+    const end = start + durationMinutes * 60 * 1000;
+    const rows = await this.db
+      .select()
+      .from(appointments)
+      .where(
+        and(
+          eq(appointments.date, date),
+          eq(appointments.status, 'booked'),
+          isNull(appointments.deletedAt),
+          sql`${appointments.slotStart} < ${end}`,
+          sql`${appointments.slotStart} + ${appointments.durationMinutes} * 60000 > ${start}`,
+        ),
+      )
+      .limit(1);
+    return rows[0];
+  }
+
   async listForDate(date: string): Promise<AppointmentEntry[]> {
     return this.db
       .select(APPOINTMENT_SELECT)
@@ -132,6 +158,42 @@ export class AppointmentRepository {
         return candidate;
       }
       candidate += slotMinutes * 60 * 1000;
+    }
+    return null;
+  }
+
+  /**
+   * First start time at or after `fromStart` whose window of `durationMinutes`
+   * fits within business hours without overlapping any booked appointment.
+   * Steps forward by `stepMinutes` (free-form granularity).
+   */
+  async findNextFreeStart(
+    date: string,
+    fromStart: number,
+    durationMinutes: number,
+    closeMinutes: number,
+    stepMinutes: number,
+  ): Promise<number | null> {
+    const entries = await this.db
+      .select({ slotStart: appointments.slotStart, durationMinutes: appointments.durationMinutes })
+      .from(appointments)
+      .where(and(eq(appointments.date, date), eq(appointments.status, 'booked')));
+    const dayStart = new Date(`${date}T00:00:00`).getTime();
+    const dayEnd = dayStart + closeMinutes * 60 * 1000;
+    const latestStart = dayEnd - durationMinutes * 60 * 1000;
+    const stepMs = stepMinutes * 60 * 1000;
+    let candidate = fromStart;
+    while (candidate <= latestStart) {
+      const candidateEnd = candidate + durationMinutes * 60 * 1000;
+      const clash = entries.some(
+        (entry) =>
+          candidate < entry.slotStart + entry.durationMinutes * 60 * 1000 &&
+          entry.slotStart < candidateEnd,
+      );
+      if (!clash) {
+        return candidate;
+      }
+      candidate += stepMs;
     }
     return null;
   }

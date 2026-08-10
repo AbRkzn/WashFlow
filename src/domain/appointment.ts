@@ -10,6 +10,27 @@ export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
 
 export const MIN_SLOT_MINUTES = 30;
 
+export const DEFAULT_APPOINTMENT_DURATION = 30;
+
+export const APPOINTMENT_DURATION_OPTIONS = [15, 30, 45, 60, 90, 120] as const;
+
+/** True when two appointment windows [start, start+duration) overlap. */
+export function appointmentWindowsOverlap(
+  aStart: number,
+  aDurationMinutes: number,
+  bStart: number,
+  bDurationMinutes: number,
+): boolean {
+  const aEnd = aStart + aDurationMinutes * 60 * 1000;
+  const bEnd = bStart + bDurationMinutes * 60 * 1000;
+  return aStart < bEnd && bStart < aEnd;
+}
+
+/** Builds a start timestamp from a date key + clock hour/minute. */
+export function buildStartTimestamp(date: string, hour: number, minute: number): number {
+  return dateKeyToStartOfDay(date) + (hour * 60 + minute) * 60 * 1000;
+}
+
 export function alignToSlot(ts: number, slotMinutes: number): number {
   const windowMs = slotMinutes * 60 * 1000;
   return Math.floor(ts / windowMs) * windowMs;
