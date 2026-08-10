@@ -11,11 +11,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { VoidRequestModal } from '@/components/void-request-modal';
+import { PaymentMethodModal } from '@/components/payment-method-modal';
 import { useCollectibleJobs, useCollectionHistory, usePayJob, useRequestVoid } from '@/data/queries';
 import { SessionHeader } from '@/components/session-header';
 import { useSessionStore } from '@/stores/session-store';
 import type { QueueEntry } from '@/data/repositories';
 import type { CollectionHistoryEntry } from '@/services/payments';
+import type { PaymentMethod } from '@/domain/payment';
 import { formatPesos } from '@/utils/money';
 import { formatClockTime } from '@/utils/time';
 
@@ -33,17 +35,21 @@ export default function CashierCollectScreen() {
   const requestVoid = useRequestVoid();
 
   const [voidingJobId, setVoidingJobId] = useState<string | null>(null);
+  const [payingJobId, setPayingJobId] = useState<string | null>(null);
   const entriesList = entries ?? [];
   const historyList = history ?? [];
   const voidingEntry = entriesList.find((entry) => entry.job.id === voidingJobId) ?? null;
+  const payingEntry = entriesList.find((entry) => entry.job.id === payingJobId) ?? null;
 
-  const handleCollect = (jobId: string) => {
+  const handleCollect = (method: PaymentMethod) => {
+    if (!payingJobId) return;
     payJob
-      .mutateAsync({ jobId, actorId })
-      .then(() => Alert.alert('Payment received', 'Job marked as paid.'))
+      .mutateAsync({ jobId: payingJobId, actorId, method })
+      .then(() => Alert.alert('Payment received', `Job marked as paid via ${method}.`))
       .catch((error) =>
         Alert.alert('Payment failed', error instanceof Error ? error.message : 'Something went wrong.'),
-      );
+      )
+      .finally(() => setPayingJobId(null));
   };
 
   const handleRequestVoid = (reason: string) => {
@@ -88,9 +94,16 @@ export default function CashierCollectScreen() {
             {item.service?.name ?? 'Service'}
           </Text>
           <View className="mt-3 flex-row items-center justify-between">
-            <Text className="text-sm text-neutral-500 dark:text-neutral-400">
-              {item.receivedByName ? `Collected by ${item.receivedByName}` : 'Collected'}
-            </Text>
+            <View className="flex-row items-center gap-2">
+              <Text className="text-sm text-neutral-500 dark:text-neutral-400">
+                {item.receivedByName ? `Collected by ${item.receivedByName}` : 'Collected'}
+              </Text>
+              <View className="rounded-full bg-neutral-100 px-2 py-0.5 dark:bg-neutral-800">
+                <Text className="text-[10px] font-semibold uppercase tracking-wide text-neutral-600 dark:text-neutral-300">
+                  {item.payment.method}
+                </Text>
+              </View>
+            </View>
             <Text className="text-base font-bold text-emerald-600 dark:text-emerald-400">
               {formatPesos(item.payment.amountCents)}
             </Text>
@@ -117,7 +130,7 @@ export default function CashierCollectScreen() {
         </Text>
         <View className="mt-3 flex-row gap-2">
           <Pressable
-            onPress={() => handleCollect(item.job.id)}
+            onPress={() => setPayingJobId(item.job.id)}
             disabled={payJob.isPending}
             className="flex-1 flex-row items-center justify-center rounded-xl bg-brand-600 px-4 py-3 active:bg-brand-700 disabled:opacity-50"
           >
@@ -191,6 +204,14 @@ export default function CashierCollectScreen() {
         busy={requestVoid.isPending}
         onClose={() => setVoidingJobId(null)}
         onConfirm={handleRequestVoid}
+      />
+
+      <PaymentMethodModal
+        visible={payingEntry !== null}
+        amountCents={payingEntry?.job.priceCents ?? 0}
+        busy={payJob.isPending}
+        onClose={() => setPayingJobId(null)}
+        onConfirm={handleCollect}
       />
     </SafeAreaView>
   );

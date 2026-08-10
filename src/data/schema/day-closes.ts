@@ -10,6 +10,7 @@ export const dayCloses = sqliteTable('day_closes', {
   closedAt: integer('closed_at').notNull(),
   jobCount: integer('job_count').notNull(),
   revenueCents: integer('revenue_cents').notNull(),
+  revenueByMethodCents: text('revenue_by_method_cents').notNull().default('{}'),
   voidedCount: integer('voided_count').notNull(),
   voidedAmountCents: integer('voided_amount_cents').notNull(),
   expensesCents: integer('expenses_cents').notNull(),

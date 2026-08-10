@@ -240,7 +240,7 @@ export async function seedIfEmpty(db: Database): Promise<void> {
   });
 
   await payments.add({ jobId: paidMaria.id, amountCents: paidMaria.priceCents, receivedBy: 'seed-washer-1' });
-  await payments.add({ jobId: paidCarlo.id, amountCents: paidCarlo.priceCents, receivedBy: 'seed-washer-1' });
+  await payments.add({ jobId: paidCarlo.id, amountCents: paidCarlo.priceCents, method: 'gcash', receivedBy: 'seed-washer-1' });
   await voidRequests.create({
     jobId: voidedAna.id,
     requestedBy: 'seed-washer-2',
@@ -289,6 +289,7 @@ export async function seedIfEmpty(db: Database): Promise<void> {
       closedAt: Date.now() - 24 * 60 * 60 * 1000 + 12 * 60 * 60 * 1000,
       jobCount: 14,
       revenueCents: 359800,
+      revenueByMethodCents: { cash: 259800, gcash: 100000 },
       voidedCount: 1,
       voidedAmountCents: 19900,
       expensesCents: 89900,

@@ -56,6 +56,7 @@ import type { AdjustmentType } from '@/domain/inventory';
 import type { ExpenseCategory } from '@/domain/expense';
 import type { ConflictResolution } from '@/domain/conflict';
 import type { UserRole } from '@/domain/user';
+import type { PaymentMethod } from '@/domain/payment';
 import { dateKey } from '@/domain/day-close';
 
 export const jobKeys = {
@@ -330,8 +331,8 @@ export function useCollectionHistory() {
 export function usePayJob() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { jobId: string; actorId: string }) =>
-      payJob(input.jobId, input.actorId),
+    mutationFn: (input: { jobId: string; actorId: string; method: PaymentMethod }) =>
+      payJob(input.jobId, input.actorId, input.method),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: jobKeys.all });
       queryClient.invalidateQueries({ queryKey: paymentKeys.collectible });

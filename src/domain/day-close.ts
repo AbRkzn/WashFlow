@@ -18,6 +18,8 @@ export interface DayReport {
   day: string;
   jobCount: number;
   revenueCents: number;
+  /** Revenue split by payment method (non-voided payments). */
+  revenueByMethodCents: Record<string, number>;
   voidedCount: number;
   voidedAmountCents: number;
   expensesCents: number;
