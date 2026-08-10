@@ -12,7 +12,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { VoidRequestModal } from '@/components/void-request-modal';
 import { PaymentMethodModal } from '@/components/payment-method-modal';
-import { useCollectibleJobs, useCollectionHistory, usePayJob, useRequestVoid } from '@/data/queries';
+import { ReceiptModal } from '@/components/receipt-modal';
+import {
+  useCollectibleJobs,
+  useCollectionHistory,
+  usePayJob,
+  useReceiptForJob,
+  useReceiptForPayment,
+  useRequestVoid,
+} from '@/data/queries';
 import { SessionHeader } from '@/components/session-header';
 import { useSessionStore } from '@/stores/session-store';
 import type { QueueEntry } from '@/data/repositories';
@@ -36,16 +44,22 @@ export default function CashierCollectScreen() {
 
   const [voidingJobId, setVoidingJobId] = useState<string | null>(null);
   const [payingJobId, setPayingJobId] = useState<string | null>(null);
+  const [receiptJobId, setReceiptJobId] = useState<string | null>(null);
+  const [receiptPaymentId, setReceiptPaymentId] = useState<string | null>(null);
   const entriesList = entries ?? [];
   const historyList = history ?? [];
   const voidingEntry = entriesList.find((entry) => entry.job.id === voidingJobId) ?? null;
   const payingEntry = entriesList.find((entry) => entry.job.id === payingJobId) ?? null;
+  const { data: freshReceipt } = useReceiptForJob(receiptJobId);
+  const { data: historyReceipt } = useReceiptForPayment(receiptPaymentId);
+  const shownReceipt = freshReceipt ?? historyReceipt;
+  const receiptBusy = receiptJobId !== null && !freshReceipt;
 
   const handleCollect = (method: PaymentMethod) => {
     if (!payingJobId) return;
     payJob
       .mutateAsync({ jobId: payingJobId, actorId, method })
-      .then(() => Alert.alert('Payment received', `Job marked as paid via ${method}.`))
+      .then(() => setReceiptJobId(payingJobId))
       .catch((error) =>
         Alert.alert('Payment failed', error instanceof Error ? error.message : 'Something went wrong.'),
       )
@@ -93,21 +107,28 @@ export default function CashierCollectScreen() {
           <Text className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
             {item.service?.name ?? 'Service'}
           </Text>
-          <View className="mt-3 flex-row items-center justify-between">
-            <View className="flex-row items-center gap-2">
-              <Text className="text-sm text-neutral-500 dark:text-neutral-400">
-                {item.receivedByName ? `Collected by ${item.receivedByName}` : 'Collected'}
-              </Text>
-              <View className="rounded-full bg-neutral-100 px-2 py-0.5 dark:bg-neutral-800">
-                <Text className="text-[10px] font-semibold uppercase tracking-wide text-neutral-600 dark:text-neutral-300">
-                  {item.payment.method}
+            <View className="mt-3 flex-row items-center justify-between">
+              <View className="flex-row items-center gap-2">
+                <Text className="text-sm text-neutral-500 dark:text-neutral-400">
+                  {item.receivedByName ? `Collected by ${item.receivedByName}` : 'Collected'}
                 </Text>
+                <View className="rounded-full bg-neutral-100 px-2 py-0.5 dark:bg-neutral-800">
+                  <Text className="text-[10px] font-semibold uppercase tracking-wide text-neutral-600 dark:text-neutral-300">
+                    {item.payment.method}
+                  </Text>
+                </View>
+              </View>
+              <View className="flex-row items-center gap-3">
+                <Text className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                  {formatPesos(item.payment.amountCents)}
+                </Text>
+                <Pressable onPress={() => setReceiptPaymentId(item.payment.id)}>
+                  <Text className="text-sm font-semibold text-brand-600 dark:text-brand-400">
+                    Receipt
+                  </Text>
+                </Pressable>
               </View>
             </View>
-            <Text className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-              {formatPesos(item.payment.amountCents)}
-            </Text>
-          </View>
         </View>
       );
     }
@@ -212,6 +233,16 @@ export default function CashierCollectScreen() {
         busy={payJob.isPending}
         onClose={() => setPayingJobId(null)}
         onConfirm={handleCollect}
+      />
+
+      <ReceiptModal
+        visible={receiptJobId !== null || receiptPaymentId !== null}
+        receipt={shownReceipt}
+        busy={receiptBusy}
+        onClose={() => {
+          setReceiptJobId(null);
+          setReceiptPaymentId(null);
+        }}
       />
     </SafeAreaView>
   );

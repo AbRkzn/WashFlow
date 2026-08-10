@@ -41,6 +41,15 @@ export class PaymentRepository {
     return rows[0];
   }
 
+  async findById(id: string): Promise<Payment | undefined> {
+    const rows = await this.db
+      .select()
+      .from(payments)
+      .where(eq(payments.id, id))
+      .limit(1);
+    return rows[0];
+  }
+
   async markVoided(id: string, at: number = Date.now()): Promise<boolean> {
     const rows = await this.db
       .update(payments)

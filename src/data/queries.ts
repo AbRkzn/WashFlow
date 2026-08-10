@@ -51,6 +51,7 @@ import {
   reopenDay,
 } from '@/services/day-close';
 import { countPendingConflicts, listPendingConflicts, resolveConflict } from '@/services/conflicts';
+import { buildReceiptForPayment, buildReceiptForJob } from '@/services/receipts';
 import { listAllUsers, provisionUserOnServer, resetRemoteUserPassword, updateRemoteUserRole } from '@/services/users';
 import type { AdjustmentType } from '@/domain/inventory';
 import type { ExpenseCategory } from '@/domain/expense';
@@ -88,6 +89,7 @@ export const photoKeys = {
 export const paymentKeys = {
   collectible: ['payments', 'collectible'] as const,
   history: ['payments', 'history'] as const,
+  receipt: (id: string) => ['payments', 'receipt', id] as const,
 };
 
 export const voidRequestKeys = {
@@ -325,6 +327,22 @@ export function useCollectionHistory() {
   return useQuery({
     queryKey: paymentKeys.history,
     queryFn: () => listCollectionHistory(),
+  });
+}
+
+export function useReceiptForPayment(paymentId: string | null) {
+  return useQuery({
+    queryKey: paymentKeys.receipt(paymentId ?? ''),
+    queryFn: () => buildReceiptForPayment(paymentId!),
+    enabled: !!paymentId,
+  });
+}
+
+export function useReceiptForJob(jobId: string | null) {
+  return useQuery({
+    queryKey: paymentKeys.receipt(`job:${jobId ?? ''}`),
+    queryFn: () => buildReceiptForJob(jobId!),
+    enabled: !!jobId,
   });
 }
 
