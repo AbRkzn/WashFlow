@@ -14,6 +14,7 @@ import m0009 from './0009_daffy_kitty_pryde.sql';
 import m0010 from './0010_wide_umar.sql';
 import m0011 from './0011_chubby_the_captain.sql';
 import m0012 from './0012_wakeful_snowbird.sql';
+import m0013 from './0013_bitter_thunderbird.sql';
 
   export default {
     journal,
@@ -30,7 +31,8 @@ m0008,
 m0009,
 m0010,
 m0011,
-m0012
+m0012,
+m0013
     }
   }
   
