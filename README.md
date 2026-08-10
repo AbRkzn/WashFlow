@@ -98,8 +98,29 @@ Hardware/POS, receipt printing, GCash/Maya/cards, push notifications, customer n
 
 ## Deployment
 
-`supabase/schema.sql` + `supabase/sync.sql` and the `provision-user` Edge Function must be deployed to your Supabase project (SQL Editor + Functions). Until then the app works fully offline by design and the outbox grows locally.
+The remote side is deployed to Supabase project `slanciuxvgusuperrjdj`:
+
+- `supabase/schema.sql` — profiles table, signup trigger, RLS (idempotent, apply in SQL Editor)
+- `supabase/sync.sql` — `sync_mirror` store + `sync_upsert` / `sync_changes` RPCs with server-side first-write-wins for claims and slots
+- `provision-user` Edge Function — admin-only in-app provisioning, deployed ACTIVE with `verify_jwt: true`
+
+To deploy to a fresh project: run `schema.sql` + `sync.sql` in the SQL Editor, then deploy the Edge Function via the Supabase CLI (`supabase functions deploy provision-user`) or dashboard. `supabase/config.toml` is checked in for CLI deploys. Until a remote is configured the app works fully offline by design and the outbox grows locally.
 
 ## Roadmap
 
-Implemented: P0 Foundation · P1 Local data layer · P2 Auth + roles · P3 Check-in · P4 Job lifecycle + photos + local notifications · P5 Payments + voids · P6 Appointments · P7 Inventory + expenses · P8 Sync engine (outbox, conflicts) · P9 Reports + day-close · P10 Polish + demo (in progress).
+All v1 phases are complete and merged to `main`.
+
+- **P0 Foundation** — Expo + TS strict scaffold, NativeWind theme tokens, Expo Router + role groups, CI (lint/typecheck/test).
+- **P1 Local data layer** — Drizzle schema, SQLite migrations, repositories, seed.
+- **P2 Auth + roles** — Supabase Auth, in-app provisioning Edge Function, sessions, audit trail, RBAC guards.
+- **P3 Check-in** — 3-tap walk-in, vehicle match/create, last-5-plates chips, queue.
+- **P4 Job lifecycle + photos + notifications** — status engine, Claim Next, force-assign/reassign, quality check, before/after photos (deferred upload), local notifications.
+- **P5 Payments + voids** — cash payment, cashier void rules, Manager approval flow.
+- **P6 Appointments** — fixed 30-min slots, booking, first-write-wins + auto-reflow, reschedule notices.
+- **P7 Inventory + expenses** — manual stock, low-stock alerts, expense logging.
+- **P8 Sync engine** — outbox, server-assigned sequences, LWW + conflict-review queue, tombstones, photo deferral. (Centerpiece; split P8a/b.)
+- **P9 Reports + day-close** — daily report, declared-cash variance, employee performance.
+- **P10 Polish + demo** — Demo Mode, in-app theme toggle (light/dark/system), domain unit tests, README.
+- **Post-P10** — admin user management (list/edit/reset, provision via Edge Function), collection history, photo viewer, self-healing DB init.
+
+Phase 2 (documented, out of v1): push notifications (FCM), GCash/Maya/cards, web dashboard, multi-branch, customer notifications, receipt printing.
