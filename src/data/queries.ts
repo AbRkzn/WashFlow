@@ -36,6 +36,7 @@ import {
   bookAppointment,
   cancelAppointment,
   checkInAppointment,
+  findAppointmentConflict,
   listDaySlots,
 } from '@/services/appointments';
 import { getSchedule } from '@/services/settings';
@@ -106,6 +107,8 @@ export const conflictKeys = {
 export const appointmentKeys = {
   all: ['appointments'] as const,
   day: (date: string) => ['appointments', 'day', date] as const,
+  conflict: (date: string, start: number, duration: number) =>
+    ['appointments', 'conflict', date, start, duration] as const,
 };
 
 export const scheduleKeys = {
@@ -464,6 +467,18 @@ export function useDaySlots(date: string) {
     queryKey: appointmentKeys.day(date),
     queryFn: () => listDaySlots(date),
     enabled: Boolean(date),
+  });
+}
+
+export function useAppointmentConflict(
+  date: string,
+  slotStart: number | null,
+  durationMinutes: number,
+) {
+  return useQuery({
+    queryKey: appointmentKeys.conflict(date, slotStart ?? 0, durationMinutes),
+    queryFn: () => findAppointmentConflict(date, slotStart!, durationMinutes),
+    enabled: Boolean(date) && slotStart !== null && !Number.isNaN(slotStart),
   });
 }
 

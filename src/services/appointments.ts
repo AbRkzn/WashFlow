@@ -6,7 +6,13 @@ import {
   type AppointmentEntry,
 } from '@/data/repositories';
 import type { Appointment } from '@/data/schema';
-import { dateKeyToStartOfDay, formatSlotTime, generateSlotStarts, toDateKey } from '@/domain/appointment';
+import {
+  DEFAULT_APPOINTMENT_DURATION,
+  dateKeyToStartOfDay,
+  formatSlotTime,
+  generateSlotStarts,
+  toDateKey,
+} from '@/domain/appointment';
 import { logAudit } from '@/services/audit';
 import { getSchedule } from '@/services/settings';
 
@@ -25,6 +31,7 @@ export interface SlotInfo {
 export interface BookAppointmentInput {
   date: string;
   slotStart: number;
+  durationMinutes?: number;
   vehicleId: string;
   customerId: string;
   serviceId: string;
@@ -53,14 +60,20 @@ export async function listDaySlots(date: string): Promise<SlotInfo[]> {
 }
 
 export async function bookAppointment(input: BookAppointmentInput): Promise<BookAppointmentResult> {
-  const existing = await appointmentRepository.findBySlot(input.date, input.slotStart);
-  if (!existing) {
+  const durationMinutes = input.durationMinutes ?? DEFAULT_APPOINTMENT_DURATION;
+  const conflicting = await appointmentRepository.findConflicting(
+    input.date,
+    input.slotStart,
+    durationMinutes,
+  );
+  if (!conflicting) {
     const appointment = await appointmentRepository.create({
       vehicleId: input.vehicleId,
       customerId: input.customerId,
       serviceId: input.serviceId,
       date: input.date,
       slotStart: input.slotStart,
+      durationMinutes,
       rescheduled: false,
       rescheduledFrom: null,
       notes: input.notes,
@@ -69,14 +82,15 @@ export async function bookAppointment(input: BookAppointmentInput): Promise<Book
   }
 
   const schedule = await getSchedule();
-  const next = await appointmentRepository.nextAvailableSlot(
+  const next = await appointmentRepository.findNextFreeStart(
     input.date,
     input.slotStart,
-    schedule.slotMinutes,
+    durationMinutes,
     schedule.closeMinutes,
+    schedule.slotMinutes,
   );
   if (!next) {
-    throw new Error('No available slots remaining for this day.');
+    throw new Error('No available time remains for this day.');
   }
   const appointment = await appointmentRepository.create({
     vehicleId: input.vehicleId,
@@ -84,6 +98,7 @@ export async function bookAppointment(input: BookAppointmentInput): Promise<Book
     serviceId: input.serviceId,
     date: input.date,
     slotStart: next,
+    durationMinutes,
     rescheduled: true,
     rescheduledFrom: input.slotStart,
     notes: input.notes,
@@ -96,6 +111,15 @@ export async function bookAppointment(input: BookAppointmentInput): Promise<Book
     details: { requestedSlot: input.slotStart, movedTo: next },
   });
   return { appointment, rescheduled: true, rescheduledFrom: input.slotStart };
+}
+
+/** Live conflict check for a prospective free-form time window. */
+export async function findAppointmentConflict(
+  date: string,
+  slotStart: number,
+  durationMinutes: number = DEFAULT_APPOINTMENT_DURATION,
+): Promise<Appointment | undefined> {
+  return appointmentRepository.findConflicting(date, slotStart, durationMinutes);
 }
 
 export async function cancelAppointment(appointmentId: string, actorId: string): Promise<void> {
@@ -117,12 +141,13 @@ export async function reflowAppointmentOnConflict(appointmentId: string): Promis
     return null;
   }
   const schedule = await getSchedule();
-  const { date, slotStart } = entry.appointment;
-  const next = await appointmentRepository.nextAvailableSlot(
+  const { date, slotStart, durationMinutes } = entry.appointment;
+  const next = await appointmentRepository.findNextFreeStart(
     date,
     slotStart,
-    schedule.slotMinutes,
+    durationMinutes,
     schedule.closeMinutes,
+    schedule.slotMinutes,
   );
   if (!next) {
     return null;
