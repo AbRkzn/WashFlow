@@ -41,6 +41,7 @@ import {
 } from '@/services/appointments';
 import { getSchedule } from '@/services/settings';
 import { adjustStock, createInventoryItem, deleteInventoryItem, listInventory, listLowStockItems, listStockMovements, updateInventoryItem } from '@/services/inventory';
+import { listServiceUsageConfig, saveServiceUsages } from '@/services/service-inventory';
 import { listDayExpenses, logExpense } from '@/services/expenses';
 import { loadDemoData } from '@/services/demo';
 import {
@@ -120,6 +121,11 @@ export const inventoryKeys = {
   list: ['inventory', 'list'] as const,
   lowStock: ['inventory', 'low-stock'] as const,
   movements: ['inventory', 'movements'] as const,
+};
+
+export const serviceInventoryKeys = {
+  all: ['service-inventory'] as const,
+  config: ['service-inventory', 'config'] as const,
 };
 
 export const expenseKeys = {
@@ -585,6 +591,28 @@ export function useAdjustStock() {
       reason?: string;
     }) => adjustStock(input.itemId, input.changeQty, input.type, input.actorId, input.reason),
     onSuccess: invalidate,
+  });
+}
+
+export function useServiceUsageConfig() {
+  return useQuery({
+    queryKey: serviceInventoryKeys.config,
+    queryFn: listServiceUsageConfig,
+  });
+}
+
+export function useSaveServiceUsages() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      serviceId: string;
+      usages: { inventoryItemId: string; quantityUsed: number }[];
+      actorId: string;
+    }) => saveServiceUsages(input.serviceId, input.usages, input.actorId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: serviceInventoryKeys.all });
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all });
+    },
   });
 }
 

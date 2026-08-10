@@ -42,6 +42,7 @@ as $$
   select p_entity in (
     'customer', 'vehicle', 'service', 'job', 'payment', 'void_request',
     'appointment', 'expense', 'day_close', 'inventory_item', 'stock_adjustment',
+    'service_inventory_item',
     'photo', 'recent_plate', 'setting', 'user'
   );
 $$;

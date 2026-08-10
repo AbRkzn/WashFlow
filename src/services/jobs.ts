@@ -5,6 +5,7 @@ import { logAudit } from '@/services/audit';
 import { notifyJobAssigned } from '@/services/notifications';
 import { notifyReadyForPickup } from '@/services/customer-notices';
 import { sendPushToUser } from '@/services/push';
+import { autoDeductForJob } from '@/services/service-inventory';
 
 const jobRepository = new JobRepository(db);
 const userRepository = new UserRepository(db);
@@ -102,6 +103,11 @@ export async function approveQuality(jobId: string, actorId: string): Promise<vo
   }
   await logAudit({ actorId, action: 'job-completed', entity: 'job', entityId: jobId });
   await notifyReadyForPickup(jobId);
+  try {
+    await autoDeductForJob(jobId);
+  } catch (error) {
+    console.warn('Auto-deduct inventory failed (non-fatal)', error);
+  }
 }
 
 export async function forceAssign(jobId: string, washerId: string, actorId: string): Promise<void> {
