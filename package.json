@@ -59,7 +59,9 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "web:dev": "npm --prefix web run dev",
+    "web:build": "npm --prefix web run build"
   },
   "private": true
 }
