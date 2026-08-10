@@ -1,0 +1,16 @@
+# Copy to supabase/config.toml and set your project_id before `supabase link`
+# or `supabase functions deploy`. See https://supabase.com/docs/reference/cli/config
+project_id = "YOUR-PROJECT-REF"
+
+[functions.provision-user]
+verify_jwt = true
+
+[functions.admin-users]
+verify_jwt = true
+
+# Photo binaries upload to this bucket; create it in the dashboard
+# (Storage -> New bucket -> "photos", public: false).
+[storage.buckets.photos]
+public = false
+file_size_limit = "10MB"
+allowed_mime_types = ["image/jpeg"]
