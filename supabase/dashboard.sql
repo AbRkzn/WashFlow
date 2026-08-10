@@ -21,7 +21,7 @@ $$;
 -- Returns every non-tombstoned mirror row with server_seq > p_after_seq,
 -- newest first. The client builds its queue/revenue views from these rows.
 create or replace function public.dashboard_snapshot(p_after_seq bigint default 0)
-returns table (entity text, entity_id text, row jsonb, server_seq bigint)
+returns table (entity text, entity_id text, payload jsonb, server_seq bigint)
 language plpgsql
 security definer
 set search_path = public

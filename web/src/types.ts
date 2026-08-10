@@ -116,6 +116,6 @@ export interface InventoryRow extends MirrorRow {
 export interface SyncSnapshotEntry {
   entity: string;
   entity_id: string;
-  row: Record<string, unknown>;
+  payload: Record<string, unknown>;
   server_seq: number;
 }
