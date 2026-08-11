@@ -72,7 +72,7 @@ export function PaymentMethodModal({
             <Pressable
               onPress={onClose}
               disabled={busy}
-              className="flex-1 items-center rounded-xl border border-neutral-200 px-4 py-3 dark:border-neutral-700"
+              className="flex-1 items-center rounded-xl border border-neutral-200 px-4 py-3 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
             >
               <Text className="text-sm font-semibold text-neutral-600 dark:text-neutral-300">
                 Cancel

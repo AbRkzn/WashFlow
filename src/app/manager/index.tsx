@@ -184,7 +184,7 @@ export default function ManagerHome() {
 
   const [picking, setPicking] = useState<PickTarget | null>(null);
   const [detailConflict, setDetailConflict] = useState<ConflictReviewEntry | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<WorkingEntry | null>(null);
+  const [voidTarget, setVoidTarget] = useState<WorkingEntry | null>(null);
   const busy =
     forceAssign.isPending ||
     reassignJob.isPending ||
@@ -232,13 +232,13 @@ export default function ManagerHome() {
       .catch(reportError);
   };
 
-  const onDeleteJob = (reason: string) => {
-    if (!deleteTarget) return;
-    const { job } = deleteTarget;
-    setDeleteTarget(null);
+  const onVoidJob = (reason: string) => {
+    if (!voidTarget) return;
+    const { job } = voidTarget;
+    setVoidTarget(null);
     voidJobAsManager
       .mutateAsync({ jobId: job.id, actorId, reason })
-      .then(() => Alert.alert('Done', 'Job deleted (voided).'))
+      .then(() => Alert.alert('Done', 'Job voided.'))
       .catch(reportError);
   };
 
@@ -369,12 +369,12 @@ export default function ManagerHome() {
                             </Text>
                           </Pressable>
                           <Pressable
-                            onPress={() => setDeleteTarget(entry)}
+                            onPress={() => setVoidTarget(entry)}
                             disabled={busy}
                             className="flex-1 rounded-xl border border-red-300 px-4 py-2.5 active:bg-red-50 dark:border-red-900 dark:active:bg-red-950"
                           >
                             <Text className="text-center text-sm font-semibold text-red-600 dark:text-red-400">
-                              Delete
+                              Void
                             </Text>
                           </Pressable>
                         </>
@@ -509,12 +509,12 @@ export default function ManagerHome() {
         />
 
         <VoidRequestModal
-          visible={deleteTarget !== null}
-          title="Delete job?"
-          plateNumber={deleteTarget?.vehicle.plateNumber ?? ''}
+          visible={voidTarget !== null}
+          title="Void job?"
+          plateNumber={voidTarget?.vehicle.plateNumber ?? ''}
           busy={voidJobAsManager.isPending}
-          onClose={() => setDeleteTarget(null)}
-          onConfirm={onDeleteJob}
+          onClose={() => setVoidTarget(null)}
+          onConfirm={onVoidJob}
         />
       </SafeAreaView>
     </RoleGuard>

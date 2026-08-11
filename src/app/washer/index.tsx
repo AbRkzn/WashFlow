@@ -128,8 +128,8 @@ export default function WasherHome() {
   const user = useSessionStore((s) => s.user);
   const washerId = user?.id ?? '';
 
-  const { data: myJobs } = useWasherBoard(washerId);
-  const { data: claimable } = useQueuedJobs();
+  const { data: myJobs, isLoading: myJobsLoading } = useWasherBoard(washerId);
+  const { data: claimable, isLoading: claimableLoading } = useQueuedJobs();
 
   const claimNext = useClaimNextJob();
   const claim = useClaimJob();
@@ -206,69 +206,77 @@ export default function WasherHome() {
             )}
           </Pressable>
 
-          <View>
-            <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-              My jobs · {(myJobs ?? []).length}
-            </Text>
-            {(myJobs ?? []).length === 0 ? (
-              <Text className="text-sm text-neutral-500 dark:text-neutral-400">
-                Nothing assigned yet. Claim a job to get started.
-              </Text>
-            ) : (
-              (myJobs ?? []).map((entry) => {
-                const actions: Record<string, { label: string; action: () => void }> = {
-                  assigned: {
-                    label: 'Start',
-                    action: run(start, { jobId: entry.job.id, washerId }, 'Job started.'),
-                  },
-                  in_progress: {
-                    label: 'Mark Done',
-                    action: run(markDone, { jobId: entry.job.id, washerId }, 'Sent to quality check.'),
-                  },
-                  quality_check: {
-                    label: 'Approve QC',
-                    action: run(approve, { jobId: entry.job.id, actorId: washerId }, 'Job completed.'),
-                  },
-                };
-                const action = actions[entry.job.status];
-                return (
-                  <View key={entry.job.id} className="mb-3">
-                    <JobCard
-                      entry={entry}
-                      buttonLabel={action?.label}
-                      onButton={action?.action}
-                      busy={busy}
-                      enablePhotos={entry.job.status === 'assigned' || entry.job.status === 'in_progress'}
-                      onAddPhoto={(kind) => onAddPhoto(entry.job.id, kind)}
-                      photoBusy={addPhoto.isPending}
-                    />
-                  </View>
-                );
-              })
-            )}
-          </View>
+          {myJobsLoading || claimableLoading ? (
+            <View className="py-10">
+              <ActivityIndicator color="#0891B2" />
+            </View>
+          ) : (
+            <>
+              <View>
+                <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                  My jobs · {(myJobs ?? []).length}
+                </Text>
+                {(myJobs ?? []).length === 0 ? (
+                  <Text className="text-sm text-neutral-500 dark:text-neutral-400">
+                    Nothing assigned yet. Claim a job to get started.
+                  </Text>
+                ) : (
+                  (myJobs ?? []).map((entry) => {
+                    const actions: Record<string, { label: string; action: () => void }> = {
+                      assigned: {
+                        label: 'Start',
+                        action: run(start, { jobId: entry.job.id, washerId }, 'Job started.'),
+                      },
+                      in_progress: {
+                        label: 'Mark Done',
+                        action: run(markDone, { jobId: entry.job.id, washerId }, 'Sent to quality check.'),
+                      },
+                      quality_check: {
+                        label: 'Approve QC',
+                        action: run(approve, { jobId: entry.job.id, actorId: washerId }, 'Job completed.'),
+                      },
+                    };
+                    const action = actions[entry.job.status];
+                    return (
+                      <View key={entry.job.id} className="mb-3">
+                        <JobCard
+                          entry={entry}
+                          buttonLabel={action?.label}
+                          onButton={action?.action}
+                          busy={busy}
+                          enablePhotos={entry.job.status === 'assigned' || entry.job.status === 'in_progress'}
+                          onAddPhoto={(kind) => onAddPhoto(entry.job.id, kind)}
+                          photoBusy={addPhoto.isPending}
+                        />
+                      </View>
+                    );
+                  })
+                )}
+              </View>
 
-          <View>
-            <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-              Up for grabs · {(claimable ?? []).length}
-            </Text>
-            {(claimable ?? []).length === 0 ? (
-              <Text className="text-sm text-neutral-500 dark:text-neutral-400">
-                Queue is clear. New check-ins will show up here.
-              </Text>
-            ) : (
-              (claimable ?? []).map((entry) => (
-                <View key={entry.job.id} className="mb-3">
-                  <JobCard
-                    entry={entry}
-                    buttonLabel="Claim"
-                    onButton={run(claim, { jobId: entry.job.id, washerId }, 'Job claimed.')}
-                    busy={busy}
-                  />
-                </View>
-              ))
-            )}
-          </View>
+              <View>
+                <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                  Up for grabs · {(claimable ?? []).length}
+                </Text>
+                {(claimable ?? []).length === 0 ? (
+                  <Text className="text-sm text-neutral-500 dark:text-neutral-400">
+                    Queue is clear. New check-ins will show up here.
+                  </Text>
+                ) : (
+                  (claimable ?? []).map((entry) => (
+                    <View key={entry.job.id} className="mb-3">
+                      <JobCard
+                        entry={entry}
+                        buttonLabel="Claim"
+                        onButton={run(claim, { jobId: entry.job.id, washerId }, 'Job claimed.')}
+                        busy={busy}
+                      />
+                    </View>
+                  ))
+                )}
+              </View>
+            </>
+          )}
         </ScrollView>
       </SafeAreaView>
     </RoleGuard>
