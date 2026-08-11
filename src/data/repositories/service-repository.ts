@@ -42,6 +42,15 @@ export class ServiceRepository {
       .orderBy(asc(services.sortOrder), asc(services.name));
   }
 
+  async findByName(name: string): Promise<Service | undefined> {
+    const rows = await this.db
+      .select()
+      .from(services)
+      .where(and(sql`lower(${services.name}) = ${name.toLowerCase()}`, isNull(services.deletedAt)))
+      .limit(1);
+    return rows[0];
+  }
+
   async findById(id: string): Promise<Service | undefined> {
     const rows = await this.db
       .select()
@@ -51,9 +60,11 @@ export class ServiceRepository {
     return rows[0];
   }
 
-  async create(input: NewService): Promise<Service> {
+  async create(input: NewService & { id?: string }): Promise<Service> {
+    const base = baseRecord();
     const record: Service = {
-      ...baseRecord(),
+      ...base,
+      id: input.id ?? base.id,
       name: input.name,
       description: input.description ?? null,
       priceCents: input.priceCents,

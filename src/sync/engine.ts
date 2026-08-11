@@ -6,6 +6,7 @@ import { ConflictReviewRepository } from '@/data/repositories/conflict-repositor
 import { SYNC_STATE_KEYS } from '@/data/schema';
 import { conflictKindForEntity, describeConflict, type ConflictKind } from '@/domain/conflict';
 import { reflowAppointmentOnConflict } from '@/services/appointments';
+import { dedupeDuplicateServices } from '@/services/services';
 import { dbColumnName, entityByName, rowFromRemote, rowToRemote, type SyncEntity } from '@/sync/entities';
 import { remotePull, remotePush } from '@/sync/remote';
 import { backoffMs, coalescePending } from '@/sync/sync-logic';
@@ -230,6 +231,7 @@ export async function pullChanges(): Promise<SyncResult> {
   }
   await syncStateRepository.set(SYNC_STATE_KEYS.lastSyncedAt, String(Date.now()));
   lastError = null;
+  await dedupeDuplicateServices();
   return { pushed: 0, pulled, offline: false, skipped: false };
 }
 

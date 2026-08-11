@@ -20,6 +20,7 @@ import {
 import { DEFAULT_SCHEDULE, SETTING_KEYS } from '@/domain/settings';
 import { toDateKey } from '@/domain/appointment';
 import { dateKey } from '@/domain/day-close';
+import { dedupeDuplicateServices } from '@/services/services';
 
 const defaultWashers = [
   { id: 'seed-washer-1', email: 'washer1@washflow.app', name: 'Rico Bautista', role: 'washer' as const },
@@ -28,6 +29,7 @@ const defaultWashers = [
 
 const defaultServices = [
   {
+    id: 'seed-service-express',
     name: 'Express Wash',
     description: 'Exterior wash, wheels, and windows.',
     priceCents: 19900,
@@ -35,6 +37,7 @@ const defaultServices = [
     sortOrder: 1,
   },
   {
+    id: 'seed-service-full-detail',
     name: 'Full Detail',
     description: 'Express wash plus interior vacuum and wipe-down.',
     priceCents: 49900,
@@ -42,6 +45,7 @@ const defaultServices = [
     sortOrder: 2,
   },
   {
+    id: 'seed-service-premium',
     name: 'Premium Detail',
     description: 'Full detail plus wax, polishing, and engine bay.',
     priceCents: 79900,
@@ -91,8 +95,9 @@ const demoVehicles = [
 
 export async function seedIfEmpty(db: Database): Promise<void> {
   const services = new ServiceRepository(db);
-  if ((await services.listActive()).length === 0) {
-    for (const service of defaultServices) {
+  await dedupeDuplicateServices();
+  for (const service of defaultServices) {
+    if (!(await services.findByName(service.name))) {
       await services.create(service);
     }
   }

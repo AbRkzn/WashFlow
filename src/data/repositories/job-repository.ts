@@ -74,6 +74,16 @@ export class JobRepository {
     return rows[0];
   }
 
+  /** Counts live (non-deleted) jobs per service id, for duplicate-service cleanup. */
+  async listServiceReferenceCounts(): Promise<Map<string | null, number>> {
+    const rows = await this.db
+      .select({ serviceId: jobs.serviceId, count: sql<number>`count(*)` })
+      .from(jobs)
+      .where(isNull(jobs.deletedAt))
+      .groupBy(jobs.serviceId);
+    return new Map(rows.map((row) => [row.serviceId, row.count]));
+  }
+
   async findByIdWithDetails(id: string): Promise<QueueEntry | undefined> {
     const rows = await this.db
       .select(JOB_SELECT)
