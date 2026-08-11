@@ -10,10 +10,6 @@ export async function listPendingConflicts(): Promise<ConflictReviewEntry[]> {
   return conflictRepository.listPendingWithDetails();
 }
 
-export async function countPendingConflicts(): Promise<number> {
-  return conflictRepository.countPending();
-}
-
 export function parseConflictRow(json: string | null): Record<string, unknown> | null {
   if (!json) return null;
   try {

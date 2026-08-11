@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { useColorScheme } from 'nativewind';
 
 import { ROLE_LABELS } from '@/domain/user';
 import { useSessionStore } from '@/stores/session-store';
 import { useThemeStore } from '@/stores/theme-store';
 import { SyncStatusBar } from '@/components/sync-status-bar';
+import { brand } from '@/theme/colors';
 
 const THEME_ICONS = {
   light: 'sunny',
@@ -18,6 +20,7 @@ export function SessionHeader() {
   const signOut = useSessionStore((s) => s.signOut);
   const theme = useThemeStore((s) => s.theme);
   const cycleTheme = useThemeStore((s) => s.cycleTheme);
+  const { colorScheme } = useColorScheme();
   const [busy, setBusy] = useState(false);
 
   if (!user) {
@@ -57,7 +60,7 @@ export function SessionHeader() {
             <Ionicons
               name={THEME_ICONS[theme]}
               size={18}
-              color="#0E7490"
+              color={colorScheme === 'dark' ? brand[400] : brand[700]}
             />
           </Pressable>
           <Pressable

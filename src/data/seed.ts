@@ -270,6 +270,12 @@ export async function seedIfEmpty(db: Database): Promise<void> {
     status: 'approved',
     resolvedBy: 'seed-washer-1',
   });
+  await voidRequests.create({
+    jobId: queuedJuan.id,
+    requestedBy: 'seed-washer-2',
+    reason: 'Customer found a scratch and asked to cancel',
+    status: 'pending',
+  });
 
   const today = toDateKey(Date.now());
   const slotStart = (clock: string) => new Date(`${today}T${clock}:00`).getTime();

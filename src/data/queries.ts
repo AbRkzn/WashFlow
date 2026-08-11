@@ -39,8 +39,7 @@ import {
   findAppointmentConflict,
   listDaySlots,
 } from '@/services/appointments';
-import { getSchedule } from '@/services/settings';
-import { adjustStock, createInventoryItem, deleteInventoryItem, listInventory, listLowStockItems, listStockMovements, updateInventoryItem } from '@/services/inventory';
+import { adjustStock, createInventoryItem, deleteInventoryItem, listInventory, listLowStockItems } from '@/services/inventory';
 import { listServiceUsageConfig, saveServiceUsages } from '@/services/service-inventory';
 import { listDayExpenses, logExpense } from '@/services/expenses';
 import { loadDemoData } from '@/services/demo';
@@ -52,7 +51,7 @@ import {
   listEmployeePerformance,
   reopenDay,
 } from '@/services/day-close';
-import { countPendingConflicts, listPendingConflicts, resolveConflict } from '@/services/conflicts';
+import { listPendingConflicts, resolveConflict } from '@/services/conflicts';
 import { buildReceiptForPayment, buildReceiptForJob } from '@/services/receipts';
 import { listAllUsers, provisionUserOnServer, resetRemoteUserPassword, updateRemoteUserRole } from '@/services/users';
 import { computeMonthlyReport, listMonthlyEmployeePerformance } from '@/services/monthly';
@@ -103,7 +102,6 @@ export const voidRequestKeys = {
 export const conflictKeys = {
   all: ['conflicts'] as const,
   pending: ['conflicts', 'pending'] as const,
-  pendingCount: ['conflicts', 'pending', 'count'] as const,
 };
 
 export const appointmentKeys = {
@@ -113,15 +111,10 @@ export const appointmentKeys = {
     ['appointments', 'conflict', date, start, duration] as const,
 };
 
-export const scheduleKeys = {
-  current: ['schedule', 'current'] as const,
-};
-
 export const inventoryKeys = {
   all: ['inventory'] as const,
   list: ['inventory', 'list'] as const,
   lowStock: ['inventory', 'low-stock'] as const,
-  movements: ['inventory', 'movements'] as const,
 };
 
 export const serviceInventoryKeys = {
@@ -450,13 +443,6 @@ export function usePendingConflicts() {
   });
 }
 
-export function useCountPendingConflicts() {
-  return useQuery({
-    queryKey: conflictKeys.pendingCount,
-    queryFn: countPendingConflicts,
-  });
-}
-
 export function useResolveConflict() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -465,13 +451,6 @@ export function useResolveConflict() {
     onSuccess: () => {
       queryClient.invalidateQueries();
     },
-  });
-}
-
-export function useSchedule() {
-  return useQuery({
-    queryKey: scheduleKeys.current,
-    queryFn: getSchedule,
   });
 }
 
@@ -543,13 +522,6 @@ export function useLowStockItems() {
   });
 }
 
-export function useStockMovements() {
-  return useQuery({
-    queryKey: inventoryKeys.movements,
-    queryFn: listStockMovements,
-  });
-}
-
 function useInvalidateInventory() {
   const queryClient = useQueryClient();
   return () => {
@@ -562,18 +534,6 @@ export function useCreateInventoryItem() {
   return useMutation({
     mutationFn: (input: { values: Parameters<typeof createInventoryItem>[0]; actorId: string }) =>
       createInventoryItem(input.values, input.actorId),
-    onSuccess: invalidate,
-  });
-}
-
-export function useUpdateInventoryItem() {
-  const invalidate = useInvalidateInventory();
-  return useMutation({
-    mutationFn: (input: {
-      itemId: string;
-      patch: Parameters<typeof updateInventoryItem>[1];
-      actorId: string;
-    }) => updateInventoryItem(input.itemId, input.patch, input.actorId),
     onSuccess: invalidate,
   });
 }

@@ -441,7 +441,7 @@ export default function ManagerHome() {
 
           {pendingConflicts.length > 0 ? (
             <View className="mt-6">
-              <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-500">
+              <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
                 Sync conflicts · {pendingConflicts.length}
               </Text>
               {pendingConflicts.map((entry) => (

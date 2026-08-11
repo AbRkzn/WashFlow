@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RoleGuard } from '@/components/role-guard';
+import { MethodBreakdown, StatRow } from '@/components/report-rows';
 import { SessionHeader } from '@/components/session-header';
 import {
   useMonthlyEmployeePerformance,
@@ -12,38 +13,6 @@ import {
 import { formatMonth, monthKey, shiftMonth } from '@/domain/monthly';
 import { formatPesos } from '@/utils/money';
 
-function StatRow({ label, value, negative }: { label: string; value: string; negative?: boolean }) {
-  return (
-    <View className="flex-row items-center justify-between py-2">
-      <Text className="text-sm text-neutral-500 dark:text-neutral-400">{label}</Text>
-      <Text
-        className={`text-base font-semibold ${negative ? 'text-red-600 dark:text-red-400' : 'text-neutral-900 dark:text-white'}`}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-function MethodBreakdown({ breakdown }: { breakdown: Record<string, number> }) {
-  const entries = Object.entries(breakdown).filter(([, cents]) => cents > 0);
-  if (entries.length === 0) {
-    return <StatRow label="By method" value={formatPesos(0)} />;
-  }
-  return (
-    <View className="py-2">
-      <Text className="mb-1 text-sm text-neutral-500 dark:text-neutral-400">By method</Text>
-      {entries.map(([method, cents]) => (
-        <View key={method} className="flex-row items-center justify-between py-0.5 pl-3">
-          <Text className="text-sm capitalize text-neutral-600 dark:text-neutral-300">{method}</Text>
-          <Text className="text-sm font-medium text-neutral-900 dark:text-white">
-            {formatPesos(cents)}
-          </Text>
-        </View>
-      ))}
-    </View>
-  );
-}
 
 export default function ManagerTrends() {
   const [month, setMonth] = useState(() => monthKey());
