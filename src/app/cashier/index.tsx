@@ -32,7 +32,7 @@ export default function CashierCheckInScreen() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const { data: services } = useActiveServices();
+  const { data: services, isLoading: servicesLoading } = useActiveServices();
   const { data: recentPlates = [] } = useRecentPlates();
   const { data: queuedCount = 0 } = useQueuedCount();
 
@@ -236,7 +236,12 @@ export default function CashierCheckInScreen() {
           <Text className="mb-2 mt-6 text-sm font-medium text-neutral-700 dark:text-neutral-300">
             Service
           </Text>
-          <View className="gap-3">
+          {servicesLoading ? (
+            <View className="py-8">
+              <ActivityIndicator color="#0891B2" />
+            </View>
+          ) : (
+            <View className="gap-3">
             {services?.map((service) => {
               const selected = service.id === selectedServiceId;
               return (
@@ -280,7 +285,8 @@ export default function CashierCheckInScreen() {
                 </Pressable>
               );
             })}
-          </View>
+            </View>
+          )}
 
           <Pressable
             onPress={handleConfirm}

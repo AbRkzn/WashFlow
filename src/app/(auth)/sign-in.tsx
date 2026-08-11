@@ -14,12 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useLoadDemoData } from '@/data/queries';
 import { useSessionStore } from '@/stores/session-store';
-const roleHome = {
-  admin: '/admin',
-  manager: '/manager',
-  cashier: '/cashier',
-  washer: '/washer',
-} as const;
+import { ROLE_HOME_ROUTES } from '@/utils/routes';
 
 export default function SignInScreen() {
   const user = useSessionStore((s) => s.user);
@@ -31,7 +26,7 @@ export default function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
 
   if (user) {
-    return <Redirect href={roleHome[user.role]} />;
+    return <Redirect href={ROLE_HOME_ROUTES[user.role]} />;
   }
 
   const isNetworkError = (message: string) =>
