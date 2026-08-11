@@ -374,34 +374,35 @@ export default function ManagerHome() {
                         <Pressable
                           onPress={() => setPicking({ job: entry, mode: 'assign' })}
                           disabled={busy}
-                          className="flex-1 rounded-xl bg-brand-600 px-4 py-2.5 active:bg-brand-700 disabled:opacity-50"
+                          className="flex-1 items-center rounded-xl bg-brand-600 px-4 py-2.5 active:bg-brand-700 disabled:opacity-50"
                         >
                           <Text className="text-center text-sm font-semibold text-white">Assign</Text>
                         </Pressable>
                       ) : (
                         <>
-                          {section.status === 'quality_check' ? (
-                            <Pressable
-                              onPress={() => onApproveQC(entry.job.id, entry.vehicle.plateNumber)}
-                              disabled={busy}
-                              className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 active:bg-emerald-700 disabled:opacity-50"
-                            >
-                              <Text className="text-center text-sm font-semibold text-white">
-                                Approve QC
-                              </Text>
-                            </Pressable>
-                          ) : null}
                           <Pressable
                             onPress={() => setPicking({ job: entry, mode: 'reassign' })}
                             disabled={busy}
-                            className="flex-1 rounded-xl bg-brand-600 px-4 py-2.5 active:bg-brand-700 disabled:opacity-50"
+                            className={`flex-1 items-center rounded-xl px-4 py-2.5 ${
+                              section.status === 'quality_check'
+                                ? 'border border-neutral-300 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800'
+                                : 'bg-brand-600 active:bg-brand-700'
+                            } disabled:opacity-50`}
                           >
-                            <Text className="text-center text-sm font-semibold text-white">Reassign</Text>
+                            <Text
+                              className={`text-center text-sm font-semibold ${
+                                section.status === 'quality_check'
+                                  ? 'text-neutral-700 dark:text-neutral-200'
+                                  : 'text-white'
+                              }`}
+                            >
+                              Reassign
+                            </Text>
                           </Pressable>
                           <Pressable
                             onPress={() => onRelease(entry.job.id)}
                             disabled={busy}
-                            className="flex-1 rounded-xl border border-neutral-300 px-4 py-2.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
+                            className="flex-1 items-center rounded-xl border border-neutral-300 px-4 py-2.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
                           >
                             <Text className="text-center text-sm font-semibold text-neutral-700 dark:text-neutral-200">
                               Release
@@ -410,7 +411,7 @@ export default function ManagerHome() {
                           <Pressable
                             onPress={() => setVoidTarget(entry)}
                             disabled={busy}
-                            className="flex-1 rounded-xl border border-red-300 px-4 py-2.5 active:bg-red-50 dark:border-red-900 dark:active:bg-red-950"
+                            className="flex-1 items-center rounded-xl border border-red-300 px-4 py-2.5 active:bg-red-50 dark:border-red-900 dark:active:bg-red-950"
                           >
                             <Text className="text-center text-sm font-semibold text-red-600 dark:text-red-400">
                               Void
@@ -419,6 +420,15 @@ export default function ManagerHome() {
                         </>
                       )}
                     </View>
+                    {section.status === 'quality_check' ? (
+                      <Pressable
+                        onPress={() => onApproveQC(entry.job.id, entry.vehicle.plateNumber)}
+                        disabled={busy}
+                        className="mt-2 w-full items-center rounded-xl bg-emerald-600 px-4 py-3 active:bg-emerald-700 disabled:opacity-50"
+                      >
+                        <Text className="text-center text-sm font-semibold text-white">Approve QC</Text>
+                      </Pressable>
+                    ) : null}
                   </View>
                 ))}
               </View>
