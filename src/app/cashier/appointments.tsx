@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppointmentBookModal } from '@/components/appointment-book-modal';
@@ -31,7 +31,7 @@ export default function CashierAppointmentsScreen() {
   const [date, setDate] = useState(() => todayKey());
   const [bookTarget, setBookTarget] = useState<BookTarget | null>(null);
 
-  const { data: slots, isLoading } = useDaySlots(date);
+  const { data: slots, isLoading, isRefetching, refetch } = useDaySlots(date);
   const cancelAppointment = useCancelAppointment();
   const checkInAppointment = useCheckInAppointment();
 
@@ -119,6 +119,9 @@ export default function CashierAppointmentsScreen() {
           data={slots}
           keyExtractor={(slot) => String(slot.slotStart)}
           contentContainerStyle={{ padding: 16, gap: 8 }}
+          refreshControl={
+            <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#0891B2" />
+          }
           renderItem={({ item: slot }) => {
             if (slot.available) {
               return (

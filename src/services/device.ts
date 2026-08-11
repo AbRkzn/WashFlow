@@ -8,7 +8,3 @@ export function getDeviceId(): string {
   }
   return cachedDeviceId;
 }
-
-export function resetDeviceId(): void {
-  cachedDeviceId = null;
-}
