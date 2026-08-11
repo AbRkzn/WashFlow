@@ -55,6 +55,7 @@ import {
 import { countPendingConflicts, listPendingConflicts, resolveConflict } from '@/services/conflicts';
 import { buildReceiptForPayment, buildReceiptForJob } from '@/services/receipts';
 import { listAllUsers, provisionUserOnServer, resetRemoteUserPassword, updateRemoteUserRole } from '@/services/users';
+import { computeMonthlyReport, listMonthlyEmployeePerformance } from '@/services/monthly';
 import type { AdjustmentType } from '@/domain/inventory';
 import type { ExpenseCategory } from '@/domain/expense';
 import type { ConflictResolution } from '@/domain/conflict';
@@ -139,6 +140,12 @@ export const dayCloseKeys = {
   byDay: (day: string) => ['day-closes', 'day', day] as const,
   report: (day: string) => ['day-closes', 'report', day] as const,
   performance: (day: string) => ['day-closes', 'performance', day] as const,
+};
+
+export const monthlyKeys = {
+  all: ['monthly'] as const,
+  report: (month: string) => ['monthly', 'report', month] as const,
+  performance: (month: string) => ['monthly', 'performance', month] as const,
 };
 
 export function useQueuedJobs() {
@@ -688,6 +695,22 @@ export function useEmployeePerformance(day: string) {
     queryKey: dayCloseKeys.performance(day),
     queryFn: () => listEmployeePerformance(day),
     enabled: Boolean(day),
+  });
+}
+
+export function useMonthlyReport(month: string) {
+  return useQuery({
+    queryKey: monthlyKeys.report(month),
+    queryFn: () => computeMonthlyReport(month),
+    enabled: Boolean(month),
+  });
+}
+
+export function useMonthlyEmployeePerformance(month: string) {
+  return useQuery({
+    queryKey: monthlyKeys.performance(month),
+    queryFn: () => listMonthlyEmployeePerformance(month),
+    enabled: Boolean(month),
   });
 }
 
