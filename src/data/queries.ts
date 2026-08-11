@@ -636,7 +636,16 @@ export function useAdjustStock() {
       type: AdjustmentType;
       actorId: string;
       reason?: string;
-    }) => adjustStock(input.itemId, input.changeQty, input.type, input.actorId, input.reason),
+      costCents?: number;
+    }) =>
+      adjustStock(
+        input.itemId,
+        input.changeQty,
+        input.type,
+        input.actorId,
+        input.reason,
+        input.costCents,
+      ),
     onSuccess: invalidate,
   });
 }

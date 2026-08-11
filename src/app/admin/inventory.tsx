@@ -45,6 +45,7 @@ interface AdjustmentFormState {
   changeQty: string;
   type: AdjustmentType;
   reason: string;
+  cost: string;
 }
 
 const emptyItemForm: ItemFormState = {
@@ -59,6 +60,7 @@ const emptyAdjustmentForm: AdjustmentFormState = {
   changeQty: '',
   type: 'restock',
   reason: '',
+  cost: '',
 };
 
 export default function AdminInventoryScreen() {
@@ -123,6 +125,14 @@ export default function AdminInventoryScreen() {
     }
     const type = adjustmentForm.type;
     const signedQty = type === 'restock' || type === 'correction' ? changeQty : -Math.abs(changeQty);
+    const costCents =
+      type === 'restock' && adjustmentForm.cost.trim() !== ''
+        ? Math.round(Number(adjustmentForm.cost.replace(/,/g, '')) * 100)
+        : undefined;
+    if (type === 'restock' && costCents !== undefined && (!Number.isFinite(costCents) || costCents <= 0)) {
+      Alert.alert('Invalid cost', 'Enter a valid positive restock cost.');
+      return;
+    }
     adjustStock
       .mutateAsync({
         itemId: adjustingItemId,
@@ -130,6 +140,7 @@ export default function AdminInventoryScreen() {
         type,
         actorId,
         reason: adjustmentForm.reason.trim() || undefined,
+        costCents,
       })
       .then(() => handleCloseAdjust())
       .catch((error) =>
@@ -429,6 +440,28 @@ export default function AdminInventoryScreen() {
                   placeholderTextColor="#94A3B8"
                   className="rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
                 />
+
+                {adjustmentForm.type === 'restock' ? (
+                  <>
+                    <Text className="mb-2 mt-4 text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                      Restock cost (optional)
+                    </Text>
+                    <View className="flex-row items-center rounded-xl border border-neutral-200 bg-white px-4 dark:border-neutral-800 dark:bg-neutral-900">
+                      <Text className="text-base text-neutral-500 dark:text-neutral-400">₱</Text>
+                      <TextInput
+                        value={adjustmentForm.cost}
+                        onChangeText={(cost) => setAdjustmentForm((f) => ({ ...f, cost }))}
+                        placeholder="0.00"
+                        placeholderTextColor="#94A3B8"
+                        keyboardType="decimal-pad"
+                        className="ml-2 flex-1 py-3 text-base text-neutral-900 dark:text-white"
+                      />
+                    </View>
+                    <Text className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                      Restocks are logged as a Supplies expense in today&apos;s report.
+                    </Text>
+                  </>
+                ) : null}
 
                 <View className="mt-4 flex-row gap-2">
                   <Pressable

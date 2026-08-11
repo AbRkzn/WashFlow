@@ -6,6 +6,7 @@ import {
 } from '@/data/repositories';
 import type { AdjustmentType } from '@/domain/inventory';
 import { logAudit } from '@/services/audit';
+import { logExpense } from '@/services/expenses';
 
 const inventoryRepository = new InventoryRepository(db);
 const stockAdjustmentRepository = new StockAdjustmentRepository(db);
@@ -48,6 +49,7 @@ export async function adjustStock(
   type: AdjustmentType,
   actorId: string,
   reason?: string,
+  costCents?: number,
 ): Promise<void> {
   if (!Number.isInteger(changeQty) || changeQty === 0) {
     throw new Error('Stock change must be a non-zero whole number.');
@@ -64,11 +66,15 @@ export async function adjustStock(
     reason: reason ?? null,
     adjustedBy: actorId,
   });
+  if (type === 'restock' && costCents !== undefined && Number.isFinite(costCents) && costCents > 0) {
+    const notes = `Restock · ${item.name}${reason ? ` · ${reason}` : ''}`;
+    await logExpense({ amountCents: costCents, category: 'supplies', description: notes }, actorId);
+  }
   await logAudit({
     actorId,
     action: 'stock-adjusted',
     entity: 'inventory_item',
     entityId: itemId,
-    details: { changeQty, type, reason: reason ?? null },
+    details: { changeQty, type, reason: reason ?? null, costCents: costCents ?? null },
   });
 }
