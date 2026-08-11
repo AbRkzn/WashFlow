@@ -42,6 +42,7 @@ import {
 } from '@/services/appointments';
 import { adjustStock, createInventoryItem, deleteInventoryItem, listInventory, listLowStockItems } from '@/services/inventory';
 import { listServiceUsageConfig, saveServiceUsages } from '@/services/service-inventory';
+import { createService, deleteService, listAllServices, updateService } from '@/services/services';
 import { listDayExpenses, logExpense } from '@/services/expenses';
 import { loadDemoData } from '@/services/demo';
 import {
@@ -73,6 +74,7 @@ export const jobKeys = {
 };
 
 export const serviceKeys = {
+  all: ['services', 'all'] as const,
   active: ['services', 'active'] as const,
 };
 
@@ -170,6 +172,47 @@ export function useActiveServices() {
   return useQuery({
     queryKey: serviceKeys.active,
     queryFn: listActiveServices,
+  });
+}
+
+export function useAllServices() {
+  return useQuery({
+    queryKey: serviceKeys.all,
+    queryFn: listAllServices,
+  });
+}
+
+export function useCreateService() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Parameters<typeof createService>[0]) => createService(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: serviceKeys.all });
+      queryClient.invalidateQueries({ queryKey: serviceKeys.active });
+    },
+  });
+}
+
+export function useUpdateService() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; patch: Parameters<typeof updateService>[1] }) =>
+      updateService(input.id, input.patch),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: serviceKeys.all });
+      queryClient.invalidateQueries({ queryKey: serviceKeys.active });
+    },
+  });
+}
+
+export function useDeleteService() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteService(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: serviceKeys.all });
+      queryClient.invalidateQueries({ queryKey: serviceKeys.active });
+    },
   });
 }
 
