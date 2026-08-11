@@ -23,7 +23,7 @@ export { VoidRequestRepository } from './void-request-repository';
 export type { AppointmentEntry, NewAppointment } from './appointment-repository';
 export type { NewAuditLog } from './audit-repository';
 export type { ConflictReviewEntry, NewConflictReview } from './conflict-repository';
-export type { CustomerPatch, NewCustomer } from './customer-repository';
+export type { CustomerDirectoryEntry, CustomerPatch, NewCustomer } from './customer-repository';
 export type { DayClose } from './day-close-repository';
 export type { NewDayClose } from './day-close-repository';
 export type { NewExpense } from './expense-repository';

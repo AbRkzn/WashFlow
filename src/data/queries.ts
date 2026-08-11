@@ -44,6 +44,7 @@ import { adjustStock, createInventoryItem, deleteInventoryItem, listInventory, l
 import { listServiceUsageConfig, saveServiceUsages } from '@/services/service-inventory';
 import { createService, deleteService, listAllServices, updateService } from '@/services/services';
 import { listDayExpenses, logExpense } from '@/services/expenses';
+import { listCustomerDirectory } from '@/services/customers';
 import { loadDemoData } from '@/services/demo';
 import {
   closeDay,
@@ -228,6 +229,17 @@ export function useVehicleHistory(vehicleId: string) {
     queryKey: vehicleHistoryKeys.forVehicle(vehicleId),
     queryFn: () => listVehicleHistory(vehicleId),
     enabled: Boolean(vehicleId),
+  });
+}
+
+export const customerDirectoryKeys = {
+  all: ['customers', 'directory'] as const,
+};
+
+export function useCustomerDirectory() {
+  return useQuery({
+    queryKey: customerDirectoryKeys.all,
+    queryFn: listCustomerDirectory,
   });
 }
 

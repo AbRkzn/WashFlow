@@ -9,6 +9,7 @@ import { SessionHeader } from '@/components/session-header';
 const quickLinks = [
   { label: 'Cashier — Check-in & Queue', href: '/cashier', icon: 'car-sport-outline' },
   { label: 'Manager — Day Overview', href: '/manager', icon: 'bar-chart-outline' },
+  { label: 'Customer directory', href: '/manager/customers', icon: 'people-outline' },
   { label: 'Washer — Job Queue', href: '/washer', icon: 'sparkles-outline' },
   { label: 'Service presets', href: '/admin/services', icon: 'pricetag-outline' },
   { label: 'Inventory', href: '/admin/inventory', icon: 'cube-outline' },
