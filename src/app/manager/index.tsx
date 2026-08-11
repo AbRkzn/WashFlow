@@ -8,6 +8,7 @@ import { RoleGuard } from '@/components/role-guard';
 import { SessionHeader } from '@/components/session-header';
 import { VoidRequestModal } from '@/components/void-request-modal';
 import {
+  useApproveQuality,
   useApproveVoidRequest,
   useDayClose,
   useForceAssign,
@@ -177,6 +178,7 @@ export default function ManagerHome() {
   const forceAssign = useForceAssign();
   const reassignJob = useReassignJob();
   const releaseJob = useReleaseJob();
+  const approveQC = useApproveQuality();
   const voidJobAsManager = useVoidJobAsManager();
   const approveVoid = useApproveVoidRequest();
   const rejectVoid = useRejectVoidRequest();
@@ -189,6 +191,7 @@ export default function ManagerHome() {
     forceAssign.isPending ||
     reassignJob.isPending ||
     releaseJob.isPending ||
+    approveQC.isPending ||
     voidJobAsManager.isPending;
 
   const reportError = (error: unknown) =>
@@ -230,6 +233,21 @@ export default function ManagerHome() {
       .mutateAsync({ jobId, actorId })
       .then(() => Alert.alert('Done', 'Job released back to the queue.'))
       .catch(reportError);
+  };
+
+  const onApproveQC = (jobId: string, plateNumber: string) => {
+    Alert.alert('Approve quality check?', `${plateNumber} will be marked complete and the customer notified.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Approve',
+        onPress: () => {
+          approveQC
+            .mutateAsync({ jobId, actorId })
+            .then(() => Alert.alert('Done', 'Quality check approved. Job complete.'))
+            .catch(reportError);
+        },
+      },
+    ]);
   };
 
   const onVoidJob = (reason: string) => {
@@ -362,6 +380,17 @@ export default function ManagerHome() {
                         </Pressable>
                       ) : (
                         <>
+                          {section.status === 'quality_check' ? (
+                            <Pressable
+                              onPress={() => onApproveQC(entry.job.id, entry.vehicle.plateNumber)}
+                              disabled={busy}
+                              className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 active:bg-emerald-700 disabled:opacity-50"
+                            >
+                              <Text className="text-center text-sm font-semibold text-white">
+                                Approve QC
+                              </Text>
+                            </Pressable>
+                          ) : null}
                           <Pressable
                             onPress={() => setPicking({ job: entry, mode: 'reassign' })}
                             disabled={busy}
