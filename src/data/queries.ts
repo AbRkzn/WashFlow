@@ -55,6 +55,7 @@ import { listPendingConflicts, resolveConflict } from '@/services/conflicts';
 import { buildReceiptForPayment, buildReceiptForJob } from '@/services/receipts';
 import { listAllUsers, provisionUserOnServer, resetRemoteUserPassword, updateRemoteUserRole } from '@/services/users';
 import { computeMonthlyReport, listMonthlyEmployeePerformance } from '@/services/monthly';
+import { getSchedule, setSchedule } from '@/services/settings';
 import type { AdjustmentType } from '@/domain/inventory';
 import type { ExpenseCategory } from '@/domain/expense';
 import type { ConflictResolution } from '@/domain/conflict';
@@ -139,6 +140,10 @@ export const monthlyKeys = {
   all: ['monthly'] as const,
   report: (month: string) => ['monthly', 'report', month] as const,
   performance: (month: string) => ['monthly', 'performance', month] as const,
+};
+
+export const scheduleKeys = {
+  all: ['settings', 'schedule'] as const,
 };
 
 export function useQueuedJobs() {
@@ -504,6 +509,24 @@ export function useCheckInAppointment() {
       queryClient.invalidateQueries({ queryKey: appointmentKeys.day(vars.date) });
       queryClient.invalidateQueries({ queryKey: jobKeys.all });
       queryClient.invalidateQueries({ queryKey: jobKeys.queuedCount });
+    },
+  });
+}
+
+export function useSchedule() {
+  return useQuery({
+    queryKey: scheduleKeys.all,
+    queryFn: getSchedule,
+  });
+}
+
+export function useSetSchedule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (schedule: Parameters<typeof setSchedule>[0]) => setSchedule(schedule),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.all });
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
     },
   });
 }
