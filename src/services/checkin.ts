@@ -7,6 +7,7 @@ import {
   ServiceRepository,
   VehicleRepository,
   type QueueEntry,
+  type VehicleHistoryEntry,
 } from '@/data/repositories';
 import type { Customer, Job, Vehicle } from '@/data/schema';
 
@@ -105,6 +106,10 @@ export async function checkIn(input: CheckInInput): Promise<CheckInResult> {
 
 export function listQueuedWithDetails(): Promise<QueueEntry[]> {
   return jobRepository.listQueuedWithDetails();
+}
+
+export function listVehicleHistory(vehicleId: string): Promise<VehicleHistoryEntry[]> {
+  return jobRepository.listForVehicle(vehicleId);
 }
 
 export function countQueuedJobs(): Promise<number> {

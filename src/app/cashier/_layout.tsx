@@ -31,6 +31,7 @@ export default function CashierLayout() {
             ),
           }}
         />
+        <Tabs.Screen name="vehicle-history" options={{ href: null }} />
         <Tabs.Screen
           name="queue"
           options={{

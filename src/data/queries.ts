@@ -20,6 +20,7 @@ import {
   listActiveServices,
   listQueuedWithDetails,
   listRecentPlates,
+  listVehicleHistory,
 } from '@/services/checkin';
 import {
   approveVoidRequest,
@@ -76,7 +77,12 @@ export const serviceKeys = {
 };
 
 export const recentPlatesKeys = {
-  list: ['recent-plates'] as const,
+  list: ['recent-plates', 'list'] as const,
+};
+
+export const vehicleHistoryKeys = {
+  all: ['vehicle-history'] as const,
+  forVehicle: (vehicleId: string) => ['vehicle-history', 'vehicle', vehicleId] as const,
 };
 
 export const userKeys = {
@@ -171,6 +177,14 @@ export function useRecentPlates() {
   return useQuery({
     queryKey: recentPlatesKeys.list,
     queryFn: () => listRecentPlates(5),
+  });
+}
+
+export function useVehicleHistory(vehicleId: string) {
+  return useQuery({
+    queryKey: vehicleHistoryKeys.forVehicle(vehicleId),
+    queryFn: () => listVehicleHistory(vehicleId),
+    enabled: Boolean(vehicleId),
   });
 }
 
