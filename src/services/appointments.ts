@@ -118,8 +118,8 @@ export async function findAppointmentConflict(
   date: string,
   slotStart: number,
   durationMinutes: number = DEFAULT_APPOINTMENT_DURATION,
-): Promise<Appointment | undefined> {
-  return appointmentRepository.findConflicting(date, slotStart, durationMinutes);
+): Promise<Appointment | null> {
+  return (await appointmentRepository.findConflicting(date, slotStart, durationMinutes)) ?? null;
 }
 
 export async function cancelAppointment(appointmentId: string, actorId: string): Promise<void> {
