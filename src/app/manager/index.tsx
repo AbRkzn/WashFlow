@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { RoleGuard } from '@/components/role-guard';
 import { SessionHeader } from '@/components/session-header';
@@ -290,6 +291,16 @@ export default function ManagerHome() {
             <Text className="text-sm font-medium text-brand-600 dark:text-brand-400">
               {todayClose ? 'Closed' : 'Open'}
             </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push('/manager/trends')}
+            className="mt-2 flex-row items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3 active:opacity-80 dark:border-neutral-800 dark:bg-neutral-900"
+          >
+            <Text className="text-base font-semibold text-neutral-800 dark:text-neutral-100">
+              Monthly trends
+            </Text>
+            <Ionicons name="bar-chart-outline" size={20} color="#0891B2" />
           </Pressable>
 
           {sections.every((s) => s.entries.length === 0) ? (
