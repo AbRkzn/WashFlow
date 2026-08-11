@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -202,6 +203,20 @@ export default function CashierCheckInScreen() {
                       : 'Vehicle registered'}
                     {match.customer.phone ? ` · ${match.customer.phone}` : ''}
                   </Text>
+                  <Pressable
+                    onPress={() =>
+                      router.push({
+                        pathname: '/cashier/vehicle-history',
+                        params: { vehicleId: match.vehicle.id },
+                      })
+                    }
+                    className="mt-3 flex-row items-center gap-1.5 self-start rounded-xl border border-brand-200 px-3 py-2 active:bg-brand-50 dark:border-brand-900 dark:active:bg-brand-950"
+                  >
+                    <Ionicons name="time-outline" size={16} color="#0E7490" />
+                    <Text className="text-sm font-semibold text-brand-700 dark:text-brand-300">
+                      View history
+                    </Text>
+                  </Pressable>
                 </View>
               ) : (
                 <View className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">

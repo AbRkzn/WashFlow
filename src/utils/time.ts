@@ -15,3 +15,13 @@ export function formatMinutesOfDay(minutes: number): string {
   const displayMinute = minute === 0 ? '' : `:${String(minute).padStart(2, '0')}`;
   return `${displayHour}${displayMinute} ${period}`;
 }
+
+export function formatDateTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  const dateLabel = date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  return `${dateLabel} · ${formatClockTime(timestamp)}`;
+}

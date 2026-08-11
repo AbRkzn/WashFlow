@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
@@ -29,6 +29,14 @@ export interface PaymentHistoryEntry {
   customer: Customer;
   service: Service | null;
   payment: Payment;
+}
+
+export interface VehicleHistoryEntry {
+  job: Job;
+  vehicle: Vehicle;
+  customer: Customer;
+  service: Service | null;
+  payment: Payment | null;
 }
 
 const JOB_SELECT = {
@@ -317,5 +325,24 @@ export class JobRepository {
       )
       .orderBy(sql`${payments.paidAt} desc`)
       .limit(limit);
+  }
+
+  /** Every non-deleted job for a vehicle, newest first, with payment when paid. */
+  async listForVehicle(vehicleId: string): Promise<VehicleHistoryEntry[]> {
+    return this.db
+      .select({
+        job: jobs,
+        vehicle: vehicles,
+        customer: customers,
+        service: services,
+        payment: payments,
+      })
+      .from(jobs)
+      .innerJoin(vehicles, eq(jobs.vehicleId, vehicles.id))
+      .innerJoin(customers, eq(jobs.customerId, customers.id))
+      .leftJoin(services, eq(jobs.serviceId, services.id))
+      .leftJoin(payments, eq(payments.jobId, jobs.id))
+      .where(and(eq(jobs.vehicleId, vehicleId), isNull(jobs.deletedAt)))
+      .orderBy(desc(jobs.createdAt));
   }
 }
