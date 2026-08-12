@@ -23,7 +23,7 @@ import {
 } from '@/data/queries';
 import type { WorkingEntry } from '@/services/jobs';
 import { parseConflictRow } from '@/services/conflicts';
-import { JOB_STATUS_LABELS, type JobStatus, WORKING_STATUSES } from '@/domain/job';
+import { JOB_STATUS_LABELS, type JobStatus, ACTIVE_STATUSES } from '@/domain/job';
 import { CONFLICT_KIND_LABELS } from '@/domain/conflict';
 import { dateKey } from '@/domain/day-close';
 import type { ConflictReviewEntry } from '@/data/repositories';
@@ -269,7 +269,7 @@ export default function ManagerHome() {
     }
   };
 
-  const sections = WORKING_STATUSES.map((status: JobStatus) => ({
+  const sections = ACTIVE_STATUSES.map((status: JobStatus) => ({
     status,
     entries: (board ?? []).filter((e) => e.job.status === status),
   }));
@@ -359,6 +359,16 @@ export default function ManagerHome() {
                           className="flex-1 rounded-xl bg-brand-600 px-4 py-2.5 active:bg-brand-700 disabled:opacity-50"
                         >
                           <Text className="text-center text-sm font-semibold text-white">Assign</Text>
+                        </Pressable>
+                      ) : section.status === 'completed' ? (
+                        <Pressable
+                          onPress={() => setVoidTarget(entry)}
+                          disabled={busy}
+                          className="flex-1 rounded-xl border border-red-300 px-4 py-2.5 active:bg-red-50 dark:border-red-900 dark:active:bg-red-950"
+                        >
+                          <Text className="text-center text-sm font-semibold text-red-600 dark:text-red-400">
+                            Void
+                          </Text>
                         </Pressable>
                       ) : (
                         <>
