@@ -10,6 +10,14 @@ export function listCustomerDirectory() {
   return customerRepository.listDirectory();
 }
 
+/** Search the customer registry by name (case-insensitive, contains match). */
+export async function searchCustomersByName(term: string) {
+  const needle = term.trim().toLowerCase();
+  if (!needle) return [];
+  const directory = await customerRepository.listDirectory();
+  return directory.filter((entry) => entry.customer.name.toLowerCase().includes(needle));
+}
+
 export interface RegisterCustomerInput {
   name: string;
   phone?: string;

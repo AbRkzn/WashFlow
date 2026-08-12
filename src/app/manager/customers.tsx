@@ -141,8 +141,7 @@ export default function ManagerCustomersScreen() {
     return entries.filter((entry) => {
       const name = entry.customer.name.toLowerCase();
       const phone = (entry.customer.phone ?? '').toLowerCase();
-      const plates = entry.vehicles.some((vehicle) => vehicle.plateNumber.toLowerCase().includes(needle));
-      return name.includes(needle) || phone.includes(needle) || plates;
+      return name.includes(needle) || phone.includes(needle);
     });
   }, [data, query]);
 
@@ -165,7 +164,7 @@ export default function ManagerCustomersScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search by name, phone, or plate"
+            placeholder="Search by name or phone"
             placeholderTextColor="#94A3B8"
             autoCapitalize="none"
             autoCorrect={false}
@@ -184,7 +183,7 @@ export default function ManagerCustomersScreen() {
             </Text>
             <Text className="mt-2 text-center text-base text-neutral-500 dark:text-neutral-400">
               {data?.length
-                ? 'Try a different name, phone, or plate.'
+                ? 'Try a different name or phone.'
                 : 'Tap "Add customer" to register one, or check in a vehicle.'}
             </Text>
           </View>
