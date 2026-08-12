@@ -1,6 +1,5 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SessionHeader } from '@/components/session-header';
@@ -51,7 +50,6 @@ function HistoryCard({ entry }: { entry: VehicleHistoryEntry }) {
 }
 
 export default function VehicleHistoryScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams<{ vehicleId?: string | string[] }>();
   const vehicleId = typeof params.vehicleId === 'string' ? params.vehicleId : '';
 
@@ -68,12 +66,6 @@ export default function VehicleHistoryScreen() {
       <SessionHeader />
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, gap: 12 }}>
         <View className="flex-row items-center gap-3">
-          <Pressable
-            onPress={() => router.back()}
-            className="rounded-xl border border-neutral-200 bg-white px-3 py-2 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900 dark:active:bg-neutral-800"
-          >
-            <Ionicons name="arrow-back" size={20} color="#334155" />
-          </Pressable>
           <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Vehicle history</Text>
         </View>
 
