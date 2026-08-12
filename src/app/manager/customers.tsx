@@ -33,9 +33,15 @@ export default function ManagerCustomersScreen() {
   const [phone, setPhone] = useState('');
   const [plates, setPlates] = useState('');
   const [adding, setAdding] = useState(false);
-  const [editTarget, setEditTarget] = useState<{ id: string; name: string; phone: string } | null>(null);
+  const [editTarget, setEditTarget] = useState<{
+    id: string;
+    name: string;
+    phone: string;
+    vehicles: { id: string; plate: string }[];
+  } | null>(null);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editVehicles, setEditVehicles] = useState<{ id: string; plate: string }[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
 
   const openAdd = () => {
@@ -45,10 +51,16 @@ export default function ManagerCustomersScreen() {
     setShowAdd(true);
   };
 
-  const openEdit = (customerId: string, currentName: string, currentPhone: string | null) => {
-    setEditTarget({ id: customerId, name: currentName, phone: currentPhone ?? '' });
+  const openEdit = (
+    customerId: string,
+    currentName: string,
+    currentPhone: string | null,
+    vehicles: { id: string; plate: string }[],
+  ) => {
+    setEditTarget({ id: customerId, name: currentName, phone: currentPhone ?? '', vehicles });
     setEditName(currentName);
     setEditPhone(currentPhone ?? '');
+    setEditVehicles(vehicles.map((vehicle) => ({ id: vehicle.id, plate: vehicle.plate })));
   };
 
   const saveEdit = async () => {
@@ -59,11 +71,36 @@ export default function ManagerCustomersScreen() {
     }
     setSavingEdit(true);
     try {
+      const originals = editTarget.vehicles;
+      const byId = new Map(originals.map((vehicle) => [vehicle.id, vehicle.plate]));
+      const seen = new Set<string>();
+      const renamed = [];
+      const removed = [];
+      for (const vehicle of editVehicles) {
+        if (vehicle.id && byId.has(vehicle.id) && vehicle.plate.trim() && byId.get(vehicle.id) !== vehicle.plate.trim()) {
+          renamed.push({ vehicleId: vehicle.id, plate: vehicle.plate.trim() });
+        }
+      }
+      for (const original of originals) {
+        const stillThere = editVehicles.some((vehicle) => vehicle.id === original.id);
+        if (!stillThere) {
+          removed.push(original.id);
+        }
+      }
+      const added = editVehicles
+        .filter((vehicle) => !vehicle.id)
+        .map((vehicle) => vehicle.plate.trim())
+        .filter((plate) => {
+          if (!plate || seen.has(plate)) return false;
+          seen.add(plate);
+          return true;
+        });
       await updateCustomer.mutateAsync({
         customerId: editTarget.id,
         name: editName.trim(),
         phone: editPhone.trim() || undefined,
         actorId,
+        vehicles: { renamed, removed, added },
       });
       setEditTarget(null);
     } catch (error) {
@@ -180,7 +217,14 @@ export default function ManagerCustomersScreen() {
                       {formatPesos(item.totalSpentCents)}
                     </Text>
                     <Pressable
-                      onPress={() => openEdit(item.customer.id, item.customer.name, item.customer.phone)}
+                      onPress={() =>
+                        openEdit(
+                          item.customer.id,
+                          item.customer.name,
+                          item.customer.phone,
+                          item.vehicles.map((vehicle) => ({ id: vehicle.id, plate: vehicle.plateNumber })),
+                        )
+                      }
                       hitSlop={8}
                       className="rounded-lg border border-neutral-200 p-1.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
                     >
@@ -306,7 +350,7 @@ export default function ManagerCustomersScreen() {
                 </Pressable>
               </View>
               <Text className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                Update the customer&apos;s name and phone.
+                Update the customer&apos;s name, phone, and vehicles.
               </Text>
 
               <Text className="mt-4 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
@@ -331,6 +375,43 @@ export default function ManagerCustomersScreen() {
                 keyboardType="phone-pad"
                 className="mt-1 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
               />
+
+              <Text className="mt-4 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                Vehicles
+              </Text>
+              {editVehicles.map((vehicle, index) => (
+                <View key={vehicle.id || `new-${index}`} className="mt-1 flex-row items-center gap-2">
+                  <TextInput
+                    value={vehicle.plate}
+                    onChangeText={(value) =>
+                      setEditVehicles((current) =>
+                        current.map((v, i) => (i === index ? { ...v, plate: value.toUpperCase() } : v)),
+                      )
+                    }
+                    placeholder="ABC 123"
+                    placeholderTextColor="#94A3B8"
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    className="flex-1 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
+                  />
+                  <Pressable
+                    onPress={() =>
+                      setEditVehicles((current) => current.filter((_, i) => i !== index))
+                    }
+                    hitSlop={8}
+                    className="rounded-lg border border-red-100 p-2.5 active:bg-red-50 dark:border-red-950 dark:active:bg-red-950"
+                  >
+                    <Ionicons name="trash-outline" size={16} color="#DC2626" />
+                  </Pressable>
+                </View>
+              ))}
+              <Pressable
+                onPress={() => setEditVehicles((current) => [...current, { id: '', plate: '' }])}
+                className="mt-2 flex-row items-center gap-1.5 rounded-xl border border-dashed border-brand-300 px-4 py-2.5 active:bg-brand-50 dark:border-brand-700 dark:active:bg-brand-950"
+              >
+                <Ionicons name="add" size={16} color="#0891B2" />
+                <Text className="text-sm font-semibold text-brand-700 dark:text-brand-300">Add plate</Text>
+              </Pressable>
 
               <Pressable
                 onPress={saveEdit}
