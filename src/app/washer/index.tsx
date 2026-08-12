@@ -202,7 +202,14 @@ export default function WasherHome() {
             {claimNext.isPending ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text className="text-center text-lg font-bold text-white">Claim Next</Text>
+              <View className="flex-row items-center justify-center gap-2">
+                <Text className="text-center text-lg font-bold text-white">Claim Next</Text>
+                {(claimable ?? []).length > 0 ? (
+                  <View className="rounded-full bg-white/20 px-2.5 py-0.5">
+                    <Text className="text-sm font-bold text-white">{(claimable ?? []).length} in queue</Text>
+                  </View>
+                ) : null}
+              </View>
             )}
           </Pressable>
 

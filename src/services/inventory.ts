@@ -5,8 +5,10 @@ import {
   type NewInventoryItem,
 } from '@/data/repositories';
 import type { AdjustmentType } from '@/domain/inventory';
+import { isLowStock } from '@/domain/inventory';
 import { logAudit } from '@/services/audit';
 import { logExpense } from '@/services/expenses';
+import { notify } from '@/services/notifications';
 
 const inventoryRepository = new InventoryRepository(db);
 const stockAdjustmentRepository = new StockAdjustmentRepository(db);
@@ -69,6 +71,10 @@ export async function adjustStock(
   if (type === 'restock' && costCents !== undefined && Number.isFinite(costCents) && costCents > 0) {
     const notes = `Restock · ${item.name}${reason ? ` · ${reason}` : ''}`;
     await logExpense({ amountCents: costCents, category: 'supplies', description: notes }, actorId);
+  }
+  const updated = await inventoryRepository.findById(itemId);
+  if (updated && !isLowStock(item) && isLowStock(updated)) {
+    await notify('Low stock', `${updated.name} is down to ${updated.quantity}.`);
   }
   await logAudit({
     actorId,

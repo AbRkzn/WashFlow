@@ -15,6 +15,7 @@ import {
   type DayReport,
 } from '@/domain/day-close';
 import { logAudit } from '@/services/audit';
+import { notifyDayClose } from '@/services/notifications';
 
 const dayCloseRepository = new DayCloseRepository(db);
 const jobRepository = new JobRepository(db);
@@ -106,6 +107,7 @@ export async function closeDay(
       varianceCents: variance,
     },
   });
+  await notifyDayClose(report.jobCount, report.revenueCents, variance);
   return closed;
 }
 
