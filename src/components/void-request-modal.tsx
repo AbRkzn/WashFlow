@@ -6,6 +6,7 @@ interface VoidRequestModalProps {
   title: string;
   plateNumber: string;
   busy?: boolean;
+  requireReason?: boolean;
   onClose: () => void;
   onConfirm: (reason: string) => void;
 }
@@ -15,6 +16,7 @@ export function VoidRequestModal({
   title,
   plateNumber,
   busy = false,
+  requireReason = false,
   onClose,
   onConfirm,
 }: VoidRequestModalProps) {
@@ -30,6 +32,8 @@ export function VoidRequestModal({
     setReason('');
   };
 
+  const canConfirm = !requireReason || reason.trim().length > 0;
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <Pressable className="flex-1 justify-end bg-black/40" onPress={handleClose}>
@@ -41,11 +45,16 @@ export function VoidRequestModal({
           <TextInput
             value={reason}
             onChangeText={setReason}
-            placeholder="Reason (optional)"
+            placeholder={requireReason ? 'Reason (required)' : 'Reason (optional)'}
             placeholderTextColor="#94A3B8"
             multiline
             className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
           />
+          {requireReason && reason.trim().length === 0 ? (
+            <Text className="mt-1 text-xs text-red-600 dark:text-red-400">
+              A reason is required for day-close reporting.
+            </Text>
+          ) : null}
           <View className="mt-4 flex-row gap-2">
             <Pressable
               onPress={handleClose}
@@ -58,7 +67,7 @@ export function VoidRequestModal({
             </Pressable>
             <Pressable
               onPress={handleConfirm}
-              disabled={busy}
+              disabled={busy || !canConfirm}
               className="flex-1 flex-row items-center justify-center rounded-xl bg-red-600 px-4 py-3 active:bg-red-700 disabled:opacity-50"
             >
               {busy ? (

@@ -1,6 +1,8 @@
 import Constants, { AppOwnership } from 'expo-constants';
 import { Platform } from 'react-native';
 
+import { formatSlotTime } from '@/domain/appointment';
+
 const CHANNEL_ID = 'job-updates';
 
 const isExpoGo = Constants.appOwnership === AppOwnership.Expo;
@@ -95,4 +97,50 @@ export async function notifyDayClose(
     'Day closed',
     `${jobCount} jobs · ₱${revenue} revenue · ${direction} by ₱${absolute}.`,
   );
+}
+
+const APPOINTMENT_REMINDER_LEAD_MINUTES = 30;
+
+/** Schedules a one-off local notification shortly before a booked appointment. */
+export async function scheduleAppointmentReminder(
+  appointmentId: string,
+  slotStart: number,
+  plate: string,
+  serviceName: string,
+): Promise<void> {
+  const Notifications = await getNotifications();
+  if (!Notifications) return;
+  const fireAt = slotStart - APPOINTMENT_REMINDER_LEAD_MINUTES * 60 * 1000;
+  if (fireAt <= Date.now()) {
+    return;
+  }
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Appointment soon',
+        body: `${serviceName} for ${plate} is booked for ${formatSlotTime(slotStart)}.`,
+        data: { appointmentReminderId: appointmentId },
+      },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireAt, channelId: CHANNEL_ID },
+    });
+  } catch (error) {
+    console.warn('Appointment reminder scheduling failed (non-fatal)', error);
+  }
+}
+
+/** Cancels any scheduled reminder for an appointment (booked → cancelled/checked-in). */
+export async function cancelAppointmentReminder(appointmentId: string): Promise<void> {
+  const Notifications = await getNotifications();
+  if (!Notifications) return;
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    const due = scheduled.filter(
+      (notification) => notification.content.data?.appointmentReminderId === appointmentId,
+    );
+    for (const notification of due) {
+      await Notifications.cancelScheduledNotificationAsync(notification.identifier);
+    }
+  } catch (error) {
+    console.warn('Appointment reminder cancel failed (non-fatal)', error);
+  }
 }
