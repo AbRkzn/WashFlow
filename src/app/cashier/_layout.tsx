@@ -85,7 +85,8 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 style={{
                   width: 52,
                   height: 34,
-                  borderRadius: 17,
+                  borderRadius: 999,
+                  overflow: 'hidden',
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: focused
