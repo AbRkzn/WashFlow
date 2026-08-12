@@ -254,7 +254,7 @@ export default function CashierCheckInScreen() {
                   setNameResults([]);
                   setSuccess(null);
                 }}
-                placeholder="e.g. Customer name"
+                placeholder="e.g. Juan Dela Cruz"
                 placeholderTextColor="#94A3B8"
                 autoCapitalize="words"
                 autoCorrect={false}
