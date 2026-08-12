@@ -60,9 +60,14 @@ export interface UpdateCustomerInput {
   name: string;
   phone?: string;
   actorId: string;
+  vehicles?: {
+    renamed?: { vehicleId: string; plate: string }[];
+    removed?: string[];
+    added?: string[];
+  };
 }
 
-/** Update a customer's name and phone from the directory. */
+/** Update a customer's name, phone, and vehicles from the directory. */
 export async function updateCustomer(input: UpdateCustomerInput): Promise<void> {
   const name = input.name.trim();
   if (!name) {
@@ -74,11 +79,31 @@ export async function updateCustomer(input: UpdateCustomerInput): Promise<void> 
     phone: input.phone?.trim() || null,
   });
 
+  const vehicles = input.vehicles;
+  const seen = new Set<string>();
+  if (vehicles) {
+    for (const renamed of vehicles.renamed ?? []) {
+      const plate = normalizePlate(renamed.plate);
+      if (!plate || seen.has(plate)) continue;
+      seen.add(plate);
+      await vehicleRepository.update(renamed.vehicleId, { plateNumber: plate, customerId: input.customerId });
+    }
+    for (const vehicleId of vehicles.removed ?? []) {
+      await vehicleRepository.softDelete(vehicleId);
+    }
+    for (const raw of vehicles.added ?? []) {
+      const plate = normalizePlate(raw);
+      if (!plate || seen.has(plate)) continue;
+      seen.add(plate);
+      await vehicleRepository.create({ plateNumber: plate, customerId: input.customerId });
+    }
+  }
+
   await logAudit({
     actorId: input.actorId,
     action: 'customer-updated',
     entity: 'customer',
     entityId: input.customerId,
-    details: { name },
+    details: { name, vehicleCount: vehicles ? (seen.size) : 0 },
   });
 }
