@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { RoleGuard } from '@/components/role-guard';
 import { SessionHeader } from '@/components/session-header';
-import { useCustomerDirectory, useRegisterCustomer } from '@/data/queries';
+import { useCustomerDirectory, useRegisterCustomer, useUpdateCustomer } from '@/data/queries';
 import { useSessionStore } from '@/stores/session-store';
 import { formatPesos } from '@/utils/money';
 import { formatDateTime } from '@/utils/time';
@@ -26,18 +26,51 @@ export default function ManagerCustomersScreen() {
   const actorId = useSessionStore((s) => s.user?.id ?? '');
   const { data, isLoading, isRefetching, refetch } = useCustomerDirectory();
   const registerCustomer = useRegisterCustomer();
+  const updateCustomer = useUpdateCustomer();
   const [query, setQuery] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [plates, setPlates] = useState('');
   const [adding, setAdding] = useState(false);
+  const [editTarget, setEditTarget] = useState<{ id: string; name: string; phone: string } | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const openAdd = () => {
     setName('');
     setPhone('');
     setPlates('');
     setShowAdd(true);
+  };
+
+  const openEdit = (customerId: string, currentName: string, currentPhone: string | null) => {
+    setEditTarget({ id: customerId, name: currentName, phone: currentPhone ?? '' });
+    setEditName(currentName);
+    setEditPhone(currentPhone ?? '');
+  };
+
+  const saveEdit = async () => {
+    if (!editTarget) return;
+    if (!editName.trim()) {
+      Alert.alert('Name required', 'Enter the customer name.');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await updateCustomer.mutateAsync({
+        customerId: editTarget.id,
+        name: editName.trim(),
+        phone: editPhone.trim() || undefined,
+        actorId,
+      });
+      setEditTarget(null);
+    } catch (error) {
+      Alert.alert('Could not update customer', error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const submit = async () => {
@@ -142,9 +175,18 @@ export default function ManagerCustomersScreen() {
                       {item.customer.phone ?? 'No phone on file'}
                     </Text>
                   </View>
-                  <Text className="text-lg font-bold text-brand-700 dark:text-brand-300">
-                    {formatPesos(item.totalSpentCents)}
-                  </Text>
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-lg font-bold text-brand-700 dark:text-brand-300">
+                      {formatPesos(item.totalSpentCents)}
+                    </Text>
+                    <Pressable
+                      onPress={() => openEdit(item.customer.id, item.customer.name, item.customer.phone)}
+                      hitSlop={8}
+                      className="rounded-lg border border-neutral-200 p-1.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
+                    >
+                      <Ionicons name="pencil-outline" size={16} color="#64748B" />
+                    </Pressable>
+                  </View>
                 </View>
 
                 {item.vehicles.length > 0 ? (
@@ -248,6 +290,57 @@ export default function ManagerCustomersScreen() {
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
                   <Text className="text-center text-base font-semibold text-white">Add customer</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal visible={editTarget !== null} transparent animationType="fade" onRequestClose={() => setEditTarget(null)}>
+          <View className="flex-1 items-center justify-center bg-black/50 px-6">
+            <View className="w-full max-w-sm rounded-3xl bg-white p-5 dark:bg-neutral-900">
+              <View className="flex-row items-center justify-between">
+                <Text className="text-lg font-bold text-neutral-900 dark:text-white">Edit customer</Text>
+                <Pressable onPress={() => setEditTarget(null)} hitSlop={8}>
+                  <Ionicons name="close" size={22} color="#94A3B8" />
+                </Pressable>
+              </View>
+              <Text className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                Update the customer&apos;s name and phone.
+              </Text>
+
+              <Text className="mt-4 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                Name
+              </Text>
+              <TextInput
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Customer name"
+                placeholderTextColor="#94A3B8"
+                className="mt-1 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
+              />
+
+              <Text className="mt-4 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                Phone
+              </Text>
+              <TextInput
+                value={editPhone}
+                onChangeText={setEditPhone}
+                placeholder="09xx-xxx-xxxx"
+                placeholderTextColor="#94A3B8"
+                keyboardType="phone-pad"
+                className="mt-1 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
+              />
+
+              <Pressable
+                onPress={saveEdit}
+                disabled={savingEdit}
+                className="mt-5 rounded-xl bg-brand-600 py-3 active:bg-brand-700 disabled:opacity-50"
+              >
+                {savingEdit ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text className="text-center text-base font-semibold text-white">Save changes</Text>
                 )}
               </Pressable>
             </View>

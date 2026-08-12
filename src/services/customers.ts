@@ -54,3 +54,31 @@ export async function registerCustomer(input: RegisterCustomerInput): Promise<Re
 
   return { customer, vehicles };
 }
+
+export interface UpdateCustomerInput {
+  customerId: string;
+  name: string;
+  phone?: string;
+  actorId: string;
+}
+
+/** Update a customer's name and phone from the directory. */
+export async function updateCustomer(input: UpdateCustomerInput): Promise<void> {
+  const name = input.name.trim();
+  if (!name) {
+    throw new Error('Customer name is required.');
+  }
+
+  await customerRepository.update(input.customerId, {
+    name,
+    phone: input.phone?.trim() || null,
+  });
+
+  await logAudit({
+    actorId: input.actorId,
+    action: 'customer-updated',
+    entity: 'customer',
+    entityId: input.customerId,
+    details: { name },
+  });
+}

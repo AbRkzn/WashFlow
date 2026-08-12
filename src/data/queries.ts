@@ -44,7 +44,7 @@ import { adjustStock, createInventoryItem, deleteInventoryItem, listInventory, l
 import { listServiceUsageConfig, saveServiceUsages } from '@/services/service-inventory';
 import { createService, deleteService, listAllServices, updateService } from '@/services/services';
 import { listDayExpenses, logExpense } from '@/services/expenses';
-import { listCustomerDirectory, registerCustomer } from '@/services/customers';
+import { listCustomerDirectory, registerCustomer, updateCustomer } from '@/services/customers';
 import { loadDemoData } from '@/services/demo';
 import {
   closeDay,
@@ -250,6 +250,16 @@ export function useRegisterCustomer() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: customerDirectoryKeys.all });
       queryClient.invalidateQueries({ queryKey: recentPlatesKeys.list });
+    },
+  });
+}
+
+export function useUpdateCustomer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Parameters<typeof updateCustomer>[0]) => updateCustomer(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: customerDirectoryKeys.all });
     },
   });
 }
