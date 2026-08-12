@@ -1,5 +1,15 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { VoidRequestModal } from '@/components/void-request-modal';
@@ -15,7 +25,19 @@ export default function CashierQueueScreen() {
   const voidJob = useVoidJob();
 
   const [voidingJobId, setVoidingJobId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
   const queued = useMemo(() => entries ?? [], [entries]);
+  const filtered = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) {
+      return queued;
+    }
+    return queued.filter(
+      (entry) =>
+        entry.vehicle.plateNumber.toLowerCase().includes(term) ||
+        entry.customer.name.toLowerCase().includes(term),
+    );
+  }, [queued, query]);
 
   const voidingEntry = queued.find((entry) => entry.job.id === voidingJobId) ?? null;
 
@@ -39,6 +61,26 @@ export default function CashierQueueScreen() {
         </Text>
       </View>
 
+      <View className="px-4 pb-2">
+        <View className="flex-row items-center rounded-2xl border border-neutral-200 bg-white px-3 dark:border-neutral-800 dark:bg-neutral-900">
+          <Ionicons name="search" size={16} color="#94A3B8" />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search plate or name"
+            placeholderTextColor="#94A3B8"
+            autoCapitalize="characters"
+            autoCorrect={false}
+            className="flex-1 px-2 py-3 text-base text-neutral-900 dark:text-white"
+          />
+          {query.length > 0 ? (
+            <Pressable onPress={() => setQuery('')} className="p-1">
+              <Ionicons name="close-circle" size={18} color="#94A3B8" />
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#0891B2" />
@@ -50,10 +92,18 @@ export default function CashierQueueScreen() {
             New check-ins will appear here.
           </Text>
         </View>
+      ) : filtered.length === 0 ? (
+        <View className="flex-1 items-center justify-center px-8">
+          <Text className="text-2xl font-bold text-neutral-900 dark:text-white">No matches</Text>
+          <Text className="mt-2 text-center text-base text-neutral-500 dark:text-neutral-400">
+            No queued job matches “{query.trim()}”.
+          </Text>
+        </View>
       ) : (
         <FlatList
-          data={queued}
+          data={filtered}
           keyExtractor={(entry) => entry.job.id}
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#0891B2" />
           }

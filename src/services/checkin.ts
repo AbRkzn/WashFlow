@@ -123,3 +123,12 @@ export function listActiveServices() {
 export function listRecentPlates(limit = 5) {
   return recentPlateRepository.listRecent(limit);
 }
+
+/** Most recent active (queued→quality_check) job for a plate, if any. */
+export function findActiveJobForPlate(plate: string): Promise<QueueEntry | null> {
+  const normalized = normalizePlate(plate);
+  if (!normalized) {
+    return Promise.resolve(null);
+  }
+  return jobRepository.findActiveByPlate(normalized).then((entry) => entry ?? null);
+}

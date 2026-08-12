@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,8 +17,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { jobKeys, recentPlatesKeys, useActiveServices, useQueuedCount, useRecentPlates } from '@/data/queries';
 import { SessionHeader } from '@/components/session-header';
-import { checkIn, lookupByPlate, type VehicleMatch } from '@/services/checkin';
+import { checkIn, findActiveJobForPlate, lookupByPlate, type VehicleMatch } from '@/services/checkin';
 import { formatPesos } from '@/utils/money';
+import type { QueueEntry } from '@/data/repositories';
+import { JOB_STATUS_LABELS } from '@/domain/job';
 
 export default function CashierCheckInScreen() {
   const router = useRouter();
@@ -25,6 +28,7 @@ export default function CashierCheckInScreen() {
 
   const [plate, setPlate] = useState('');
   const [match, setMatch] = useState<VehicleMatch | null>(null);
+  const [activeJob, setActiveJob] = useState<QueueEntry | null>(null);
   const [searched, setSearched] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -51,19 +55,22 @@ export default function CashierCheckInScreen() {
     setSuccess(null);
     if (!normalized) {
       setMatch(null);
+      setActiveJob(null);
       return;
     }
     try {
       setMatch(await lookupByPlate(normalized));
+      setActiveJob(await findActiveJobForPlate(normalized));
     } catch (e) {
       setMatch(null);
+      setActiveJob(null);
       setError(e instanceof Error ? e.message : 'Lookup failed.');
     }
   };
 
-  const handleConfirm = async () => {
+  const runCheckIn = async (): Promise<boolean> => {
     if (!canConfirm || !selectedServiceId) {
-      return;
+      return false;
     }
     setBusy(true);
     setError(null);
@@ -77,6 +84,7 @@ export default function CashierCheckInScreen() {
       setSuccess(`${vehicle.plateNumber} queued.`);
       setPlate('');
       setMatch(null);
+      setActiveJob(null);
       setSearched(false);
       setCustomerName('');
       setCustomerPhone('');
@@ -87,11 +95,42 @@ export default function CashierCheckInScreen() {
         queryClient.invalidateQueries({ queryKey: recentPlatesKeys.list }),
       ]);
       setTimeout(() => router.push('/cashier/queue'), 800);
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Check-in failed.');
+      return false;
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleConfirm = async () => {
+    if (!canConfirm || !selectedServiceId) {
+      return;
+    }
+    if (activeJob && activeJob.job.status !== 'queued') {
+      Alert.alert(
+        'Plate already being worked',
+        `${activeJob.vehicle.plateNumber} is already ${JOB_STATUS_LABELS[activeJob.job.status].toLowerCase()} (${activeJob.customer.name}). Queue a duplicate anyway?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Queue anyway', onPress: () => runCheckIn() },
+        ],
+      );
+      return;
+    }
+    if (activeJob) {
+      Alert.alert(
+        'Plate already queued',
+        `${activeJob.vehicle.plateNumber} is already in the queue as ${JOB_STATUS_LABELS[activeJob.job.status].toLowerCase()} (${activeJob.customer.name}). Queue a duplicate anyway?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Queue anyway', onPress: () => runCheckIn() },
+        ],
+      );
+      return;
+    }
+    await runCheckIn();
   };
 
   return (
@@ -157,6 +196,7 @@ export default function CashierCheckInScreen() {
                 onChangeText={(text) => {
                   setPlate(text.toUpperCase());
                   setMatch(null);
+                  setActiveJob(null);
                   setSearched(false);
                   setSuccess(null);
                 }}
@@ -183,6 +223,18 @@ export default function CashierCheckInScreen() {
             <View className="mt-3 rounded-2xl bg-green-50 px-4 py-3 dark:bg-green-950">
               <Text className="text-sm font-semibold text-green-700 dark:text-green-400">
                 {success}
+              </Text>
+            </View>
+          ) : null}
+
+          {activeJob ? (
+            <View className="mt-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950">
+              <Text className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                Already {JOB_STATUS_LABELS[activeJob.job.status].toLowerCase()}
+              </Text>
+              <Text className="mt-1 text-sm text-amber-700 dark:text-amber-400">
+                {activeJob.vehicle.plateNumber} · {activeJob.customer.name} ·{' '}
+                {activeJob.service?.name ?? 'Service'} — a duplicate will be flagged on confirm.
               </Text>
             </View>
           ) : null}

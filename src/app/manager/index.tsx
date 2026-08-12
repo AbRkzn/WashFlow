@@ -10,6 +10,7 @@ import { VoidRequestModal } from '@/components/void-request-modal';
 import {
   useApproveVoidRequest,
   useDayClose,
+  useEmployeePerformance,
   useForceAssign,
   usePendingConflicts,
   usePendingVoidRequests,
@@ -173,6 +174,7 @@ export default function ManagerHome() {
   const { data: pendingVoids = [] } = usePendingVoidRequests();
   const { data: pendingConflicts = [] } = usePendingConflicts();
   const { data: todayClose } = useDayClose(dateKey());
+  const { data: performance = [] } = useEmployeePerformance(dateKey());
 
   const forceAssign = useForceAssign();
   const reassignJob = useReassignJob();
@@ -280,6 +282,29 @@ export default function ManagerHome() {
         <SessionHeader />
         <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
           <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Day Board</Text>
+
+          {performance.length > 0 ? (
+            <View className="mt-3">
+              <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                Team today
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                {performance.map((entry) => (
+                  <View
+                    key={entry.washerId}
+                    className="flex-row items-center gap-2 rounded-full border border-brand-200 bg-white px-3 py-1.5 dark:border-brand-900 dark:bg-neutral-900"
+                  >
+                    <Text className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+                      {entry.washerName ?? 'Washer'}
+                    </Text>
+                    <View className="rounded-full bg-brand-600 px-2 py-0.5">
+                      <Text className="text-xs font-bold text-white">{entry.completedCount}</Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
 
           <Pressable
             onPress={() => router.push('/manager/day-close')}
@@ -523,6 +548,7 @@ export default function ManagerHome() {
           title="Void job?"
           plateNumber={voidTarget?.vehicle.plateNumber ?? ''}
           busy={voidJobAsManager.isPending}
+          requireReason
           onClose={() => setVoidTarget(null)}
           onConfirm={onVoidJob}
         />

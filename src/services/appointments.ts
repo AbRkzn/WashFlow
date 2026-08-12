@@ -15,6 +15,7 @@ import {
 } from '@/domain/appointment';
 import { logAudit } from '@/services/audit';
 import { getSchedule } from '@/services/settings';
+import { cancelAppointmentReminder, scheduleAppointmentReminder } from '@/services/notifications';
 
 const appointmentRepository = new AppointmentRepository(db);
 const jobRepository = new JobRepository(db);
@@ -78,6 +79,7 @@ export async function bookAppointment(input: BookAppointmentInput): Promise<Book
       rescheduledFrom: null,
       notes: input.notes,
     });
+    await scheduleReminderFor(appointment.id);
     return { appointment, rescheduled: false, rescheduledFrom: null };
   }
 
@@ -103,6 +105,7 @@ export async function bookAppointment(input: BookAppointmentInput): Promise<Book
     rescheduledFrom: input.slotStart,
     notes: input.notes,
   });
+  await scheduleReminderFor(appointment.id);
   await logAudit({
     actorId: input.customerId,
     action: 'appointment-auto-rescheduled',
@@ -111,6 +114,24 @@ export async function bookAppointment(input: BookAppointmentInput): Promise<Book
     details: { requestedSlot: input.slotStart, movedTo: next },
   });
   return { appointment, rescheduled: true, rescheduledFrom: input.slotStart };
+}
+
+/** Loads an appointment's details and schedules a local reminder for its slot. */
+async function scheduleReminderFor(appointmentId: string): Promise<void> {
+  try {
+    const entry = await appointmentRepository.findByIdWithDetails(appointmentId);
+    if (!entry) {
+      return;
+    }
+    await scheduleAppointmentReminder(
+      appointmentId,
+      entry.appointment.slotStart,
+      entry.vehicle.plateNumber,
+      entry.service?.name ?? 'Appointment',
+    );
+  } catch (error) {
+    console.warn('Appointment reminder schedule failed (non-fatal)', error);
+  }
 }
 
 /** Live conflict check for a prospective free-form time window. */
@@ -127,6 +148,7 @@ export async function cancelAppointment(appointmentId: string, actorId: string):
   if (!cancelled) {
     throw new Error('This appointment is no longer active.');
   }
+  await cancelAppointmentReminder(appointmentId);
   await logAudit({ actorId, action: 'appointment-cancelled', entity: 'appointment', entityId: appointmentId });
 }
 
@@ -156,6 +178,8 @@ export async function reflowAppointmentOnConflict(appointmentId: string): Promis
   if (!moved) {
     return null;
   }
+  await cancelAppointmentReminder(appointmentId);
+  await scheduleReminderFor(appointmentId);
   await logAudit({
     actorId: entry.customer.id,
     action: 'appointment-sync-reflowed',
@@ -192,6 +216,7 @@ export async function checkInAppointment(
   });
   await appointmentRepository.markCompleted(appointmentId, job.id);
   await recentPlateRepository.record(vehicle.plateNumber);
+  await cancelAppointmentReminder(appointmentId);
   await logAudit({ actorId, action: 'appointment-checked-in', entity: 'appointment', entityId: appointmentId });
   return appointment;
 }

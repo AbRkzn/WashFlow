@@ -3,7 +3,8 @@ import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
 import { customers, jobs, payments, services, vehicles, type Customer, type Job, type Payment, type Service, type Vehicle } from '@/data/schema';
-import { type JobStatus, ACTIVE_STATUSES } from '@/domain/job';
+import { type JobStatus, ACTIVE_STATUSES, WORKING_STATUSES } from '@/domain/job';
+import { normalizePlate } from '@/data/repositories/vehicle-repository';
 import { enqueueChange } from '@/sync/outbox';
 
 export interface NewJob {
@@ -300,6 +301,26 @@ export class JobRepository {
       .leftJoin(services, eq(jobs.serviceId, services.id))
       .where(and(inArray(jobs.status, [...ACTIVE_STATUSES]), isNull(jobs.deletedAt)))
       .orderBy(asc(jobs.createdAt));
+  }
+
+  /** Most recent active (non-terminal) job for a plate number, for duplicate-entry guard. */
+  async findActiveByPlate(plate: string): Promise<QueueEntry | undefined> {
+    const rows = await this.db
+      .select(JOB_SELECT)
+      .from(jobs)
+      .innerJoin(vehicles, eq(jobs.vehicleId, vehicles.id))
+      .innerJoin(customers, eq(jobs.customerId, customers.id))
+      .leftJoin(services, eq(jobs.serviceId, services.id))
+      .where(
+        and(
+          eq(vehicles.plateNumber, normalizePlate(plate)),
+          inArray(jobs.status, [...WORKING_STATUSES]),
+          isNull(jobs.deletedAt),
+        ),
+      )
+      .orderBy(desc(jobs.createdAt))
+      .limit(1);
+    return rows[0];
   }
 
   async countByStatus(status: JobStatus): Promise<number> {
