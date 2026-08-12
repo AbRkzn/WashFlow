@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 
 import { RoleGuard } from '@/components/role-guard';
+import { ErrorBoundary } from '@/components/error-boundary';
 import { brand } from '@/theme/colors';
 
 export default function CashierLayout() {
@@ -11,6 +12,7 @@ export default function CashierLayout() {
 
   return (
     <RoleGuard roles={['cashier', 'manager', 'admin']}>
+      <ErrorBoundary>
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -67,6 +69,7 @@ export default function CashierLayout() {
           }}
         />
       </Tabs>
+      </ErrorBoundary>
     </RoleGuard>
   );
 }
