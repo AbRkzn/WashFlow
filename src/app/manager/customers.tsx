@@ -1,18 +1,68 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  Pressable,
+  RefreshControl,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { RoleGuard } from '@/components/role-guard';
 import { SessionHeader } from '@/components/session-header';
-import { useCustomerDirectory } from '@/data/queries';
+import { useCustomerDirectory, useRegisterCustomer } from '@/data/queries';
+import { useSessionStore } from '@/stores/session-store';
 import { formatPesos } from '@/utils/money';
 import { formatDateTime } from '@/utils/time';
 
 export default function ManagerCustomersScreen() {
   const router = useRouter();
+  const actorId = useSessionStore((s) => s.user?.id ?? '');
   const { data, isLoading, isRefetching, refetch } = useCustomerDirectory();
+  const registerCustomer = useRegisterCustomer();
   const [query, setQuery] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [plates, setPlates] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  const openAdd = () => {
+    setName('');
+    setPhone('');
+    setPlates('');
+    setShowAdd(true);
+  };
+
+  const submit = async () => {
+    if (!name.trim()) {
+      Alert.alert('Name required', 'Enter the customer name.');
+      return;
+    }
+    setAdding(true);
+    try {
+      await registerCustomer.mutateAsync({
+        name: name.trim(),
+        phone: phone.trim() || undefined,
+        plates: plates
+          .split(/[\s,]+/)
+          .map((p) => p.trim())
+          .filter(Boolean),
+        actorId,
+      });
+      setShowAdd(false);
+    } catch (error) {
+      Alert.alert('Could not add customer', error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      setAdding(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     const entries = data ?? [];
@@ -32,6 +82,13 @@ export default function ManagerCustomersScreen() {
         <SessionHeader />
         <View className="flex-row items-center justify-between px-4 py-3">
           <Text className="text-lg font-bold text-neutral-900 dark:text-white">Customer directory</Text>
+          <Pressable
+            onPress={openAdd}
+            className="flex-row items-center gap-1.5 rounded-full bg-brand-600 px-4 py-2 active:bg-brand-700"
+          >
+            <Ionicons name="person-add" size={16} color="#FFFFFF" />
+            <Text className="text-sm font-semibold text-white">Add customer</Text>
+          </Pressable>
         </View>
 
         <View className="px-4 pb-2">
@@ -58,7 +115,7 @@ export default function ManagerCustomersScreen() {
             <Text className="mt-2 text-center text-base text-neutral-500 dark:text-neutral-400">
               {data?.length
                 ? 'Try a different name, phone, or plate.'
-                : 'Customers appear here after their first check-in.'}
+                : 'Tap "Add customer" to register one, or check in a vehicle.'}
             </Text>
           </View>
         ) : (
@@ -129,6 +186,73 @@ export default function ManagerCustomersScreen() {
             )}
           />
         )}
+
+        <Modal visible={showAdd} transparent animationType="fade" onRequestClose={() => setShowAdd(false)}>
+          <View className="flex-1 items-center justify-center bg-black/50 px-6">
+            <View className="w-full max-w-sm rounded-3xl bg-white p-5 dark:bg-neutral-900">
+              <View className="flex-row items-center justify-between">
+                <Text className="text-lg font-bold text-neutral-900 dark:text-white">Add customer</Text>
+                <Pressable onPress={() => setShowAdd(false)} hitSlop={8}>
+                  <Ionicons name="close" size={22} color="#94A3B8" />
+                </Pressable>
+              </View>
+              <Text className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                Register a customer and their vehicles before the first visit.
+              </Text>
+
+              <Text className="mt-4 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                Name
+              </Text>
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                placeholder="Customer name"
+                placeholderTextColor="#94A3B8"
+                className="mt-1 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
+              />
+
+              <Text className="mt-4 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                Phone (optional)
+              </Text>
+              <TextInput
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="09xx-xxx-xxxx"
+                placeholderTextColor="#94A3B8"
+                keyboardType="phone-pad"
+                className="mt-1 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
+              />
+
+              <Text className="mt-4 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                Plates (optional)
+              </Text>
+              <TextInput
+                value={plates}
+                onChangeText={setPlates}
+                placeholder="ABC 123, XYZ 789"
+                placeholderTextColor="#94A3B8"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                className="mt-1 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
+              />
+              <Text className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">
+                Separate multiple plates with spaces or commas.
+              </Text>
+
+              <Pressable
+                onPress={submit}
+                disabled={adding}
+                className="mt-5 rounded-xl bg-brand-600 py-3 active:bg-brand-700 disabled:opacity-50"
+              >
+                {adding ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text className="text-center text-base font-semibold text-white">Add customer</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </RoleGuard>
   );
