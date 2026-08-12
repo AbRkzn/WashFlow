@@ -76,3 +76,23 @@ export async function notify(title: string, body: string): Promise<void> {
 export async function notifyJobAssigned(plate: string, washerName: string): Promise<void> {
   await notify('New job assigned', `${plate} is assigned to ${washerName}.`);
 }
+
+export async function notifyDayClose(
+  jobCount: number,
+  revenueCents: number,
+  variance: number,
+): Promise<void> {
+  const direction = variance === 0 ? 'Balanced' : variance > 0 ? 'Over' : 'Short';
+  const absolute = Math.abs(variance / 100).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const revenue = (revenueCents / 100).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  await notify(
+    'Day closed',
+    `${jobCount} jobs · ₱${revenue} revenue · ${direction} by ₱${absolute}.`,
+  );
+}
