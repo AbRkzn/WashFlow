@@ -103,6 +103,16 @@ export default function CashierCheckInScreen() {
     handleLookup(entry.vehicles[0].plateNumber);
   };
 
+  const clearSearch = () => {
+    setPlate('');
+    setMatch(null);
+    setActiveJob(null);
+    setSearched(false);
+    setNameResults([]);
+    setSuccess(null);
+    setError(null);
+  };
+
   const runCheckIn = async (): Promise<boolean> => {
     if (!canConfirm || !selectedServiceId) {
       return false;
@@ -231,7 +241,7 @@ export default function CashierCheckInScreen() {
                     className="rounded-full border border-brand-200 bg-brand-50 px-4 py-2 active:opacity-70 dark:border-brand-900 dark:bg-brand-950"
                   >
                     <Text className="text-sm font-semibold text-brand-700 dark:text-brand-300">
-                      {recent.plate}
+                      {recent.customerName ?? recent.plate}
                     </Text>
                   </Pressable>
                 ))}
@@ -244,24 +254,38 @@ export default function CashierCheckInScreen() {
               Search customer name
             </Text>
             <View className="flex-row gap-2">
-              <TextInput
-                value={plate}
-                onChangeText={(text) => {
-                  setPlate(text);
-                  setMatch(null);
-                  setActiveJob(null);
-                  setSearched(false);
-                  setNameResults([]);
-                  setSuccess(null);
-                }}
-                placeholder="e.g. Juan Dela Cruz"
-                placeholderTextColor="#94A3B8"
-                autoCapitalize="words"
-                autoCorrect={false}
-                returnKeyType="search"
-                onSubmitEditing={() => handleLookup()}
-                className="flex-1 rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
-              />
+              <View className="relative flex-1">
+                <TextInput
+                  value={plate}
+                  onChangeText={(text) => {
+                    setPlate(text);
+                    setMatch(null);
+                    setActiveJob(null);
+                    setSearched(false);
+                    setNameResults([]);
+                    setSuccess(null);
+                  }}
+                  placeholder="e.g. Juan Dela Cruz"
+                  placeholderTextColor="#94A3B8"
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  returnKeyType="search"
+                  onSubmitEditing={() => handleLookup()}
+                  className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-4 pr-12 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
+                />
+                {plate.length > 0 ? (
+                  <Pressable
+                    onPress={clearSearch}
+                    accessibilityLabel="Clear search"
+                    hitSlop={8}
+                    className="absolute right-2 top-1/2 z-10 -translate-y-1/2"
+                  >
+                    <View className="h-7 w-7 items-center justify-center rounded-full bg-neutral-200 active:bg-neutral-300 dark:bg-neutral-700 dark:active:bg-neutral-600">
+                      <Ionicons name="close" size={14} color="#525252" />
+                    </View>
+                  </Pressable>
+                ) : null}
+              </View>
               <Pressable
                 onPress={() => handleLookup()}
                 className="items-center justify-center rounded-2xl bg-brand-600 px-5 active:opacity-80"
