@@ -29,17 +29,27 @@ export async function listCollectibleJobs(): Promise<QueueEntry[]> {
   return jobRepository.listCompletedWithDetails();
 }
 
-/** Most recent paid jobs with collector name — for the Collect history. */
+/**
+ * Most recent paid jobs with collector name — for the Collect history.
+ * One row per job (newest payment wins when duplicates exist from sync).
+ */
 export async function listCollectionHistory(limit = 20): Promise<CollectionHistoryEntry[]> {
   const entries = await jobRepository.listPaidWithDetails(limit);
   const users = await userRepository.listAll();
   const nameById = new Map(users.map((u) => [u.id, u.name]));
-  return entries.map((entry) => ({
-    ...entry,
-    receivedByName: entry.payment.receivedBy
-      ? (nameById.get(entry.payment.receivedBy) ?? null)
-      : null,
-  }));
+  const seen = new Set<string>();
+  return entries
+    .filter((entry) => {
+      if (seen.has(entry.job.id)) return false;
+      seen.add(entry.job.id);
+      return true;
+    })
+    .map((entry) => ({
+      ...entry,
+      receivedByName: entry.payment.receivedBy
+        ? (nameById.get(entry.payment.receivedBy) ?? null)
+        : null,
+    }));
 }
 
 export async function payJob(jobId: string, actorId: string, method: PaymentMethod = 'cash'): Promise<void> {

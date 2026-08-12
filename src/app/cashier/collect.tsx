@@ -23,6 +23,7 @@ import {
   useRequestVoid,
 } from '@/data/queries';
 import { SessionHeader } from '@/components/session-header';
+import { ErrorBoundary } from '@/components/error-boundary';
 import { useSessionStore } from '@/stores/session-store';
 import { buildNoticeForJob } from '@/services/customer-notices';
 import type { QueueEntry } from '@/data/repositories';
@@ -38,6 +39,17 @@ function isHistoryEntry(entry: CollectEntry): entry is CollectionHistoryEntry {
 }
 
 export default function CashierCollectScreen() {
+  return (
+    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <SessionHeader />
+      <ErrorBoundary>
+        <CollectBody />
+      </ErrorBoundary>
+    </SafeAreaView>
+  );
+}
+
+function CollectBody() {
   const actorId = useSessionStore((s) => s.user?.id ?? '');
   const { data: entries, isLoading, isRefetching, refetch: refetchCollectible } = useCollectibleJobs();
   const { data: history, isLoading: historyLoading, isRefetching: historyRefetching, refetch: refetchHistory } = useCollectionHistory();
@@ -48,8 +60,8 @@ export default function CashierCollectScreen() {
   const [payingJobId, setPayingJobId] = useState<string | null>(null);
   const [receiptJobId, setReceiptJobId] = useState<string | null>(null);
   const [receiptPaymentId, setReceiptPaymentId] = useState<string | null>(null);
-  const entriesList = entries ?? [];
-  const historyList = history ?? [];
+  const entriesList = Array.isArray(entries) ? entries : [];
+  const historyList = Array.isArray(history) ? history : [];
   const voidingEntry = entriesList.find((entry) => entry.job.id === voidingJobId) ?? null;
   const payingEntry = entriesList.find((entry) => entry.job.id === payingJobId) ?? null;
   const { data: freshReceipt } = useReceiptForJob(receiptJobId);
@@ -192,8 +204,7 @@ export default function CashierCollectScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-      <SessionHeader />
+    <>
       <View className="flex-row items-center justify-between px-4 py-3">
         <Text className="text-lg font-bold text-neutral-900 dark:text-white">Collect</Text>
       </View>
@@ -214,7 +225,9 @@ export default function CashierCollectScreen() {
       ) : (
         <SectionList
           sections={sections}
-          keyExtractor={(item) => item.job.id}
+          keyExtractor={(item) =>
+            isHistoryEntry(item) ? `pay-${item.payment.id}` : `job-${item.job.id}`
+          }
           refreshControl={
             <RefreshControl
               refreshing={isRefetching || historyRefetching}
@@ -264,6 +277,6 @@ export default function CashierCollectScreen() {
           setReceiptPaymentId(null);
         }}
       />
-    </SafeAreaView>
+    </>
   );
 }
