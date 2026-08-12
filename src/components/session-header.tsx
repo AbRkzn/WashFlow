@@ -7,6 +7,7 @@ import { ROLE_LABELS } from '@/domain/user';
 import { useSessionStore } from '@/stores/session-store';
 import { useThemeStore } from '@/stores/theme-store';
 import { SyncStatusBar } from '@/components/sync-status-bar';
+import { BackButton } from '@/components/back-button';
 import { brand } from '@/theme/colors';
 
 const THEME_ICONS = {
@@ -42,6 +43,7 @@ export function SessionHeader() {
     <View>
       <View className="flex-row items-center justify-between px-4 py-3">
         <View className="flex-row items-center gap-2">
+          <BackButton />
           <View className="rounded-full bg-brand-600 px-3 py-1">
             <Text className="text-xs font-semibold uppercase tracking-wide text-white">
               {ROLE_LABELS[user.role]}
