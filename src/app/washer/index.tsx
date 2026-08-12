@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 
 import { PhotoViewerModal } from '@/components/photo-viewer-modal';
+import { PlateBadge } from '@/components/plate-badge';
 import { RoleGuard } from '@/components/role-guard';
 import { SessionHeader } from '@/components/session-header';
 import {
@@ -57,9 +58,7 @@ function JobCard({
   return (
     <View className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
       <View className="flex-row items-center justify-between">
-        <Text className="text-xl font-bold tracking-widest text-neutral-900 dark:text-white">
-          {entry.vehicle.plateNumber}
-        </Text>
+        <PlateBadge plate={entry.vehicle.plateNumber} size="lg" />
         <View className="rounded-full bg-neutral-100 px-2.5 py-1 dark:bg-neutral-800">
           <Text className={`text-xs font-semibold ${STATUS_CHIP[entry.job.status]}`}>
             {JOB_STATUS_LABELS[entry.job.status]}

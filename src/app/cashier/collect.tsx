@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { VoidRequestModal } from '@/components/void-request-modal';
 import { PaymentMethodModal } from '@/components/payment-method-modal';
 import { ReceiptModal } from '@/components/receipt-modal';
+import { PlateBadge } from '@/components/plate-badge';
+import { EmptyState } from '@/components/empty-state';
 import {
   useCollectibleJobs,
   useCollectionHistory,
@@ -125,9 +127,7 @@ function CollectBody() {
         <View className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
-              <Text className="text-lg font-bold tracking-widest text-neutral-900 dark:text-white">
-                {item.vehicle.plateNumber}
-              </Text>
+              <PlateBadge plate={item.vehicle.plateNumber} />
               <View className="rounded-full bg-emerald-100 px-2 py-0.5 dark:bg-emerald-950">
                 <Text className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
                   Paid
@@ -173,9 +173,7 @@ function CollectBody() {
     return (
       <View className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
         <View className="flex-row items-center justify-between">
-          <Text className="text-xl font-bold tracking-widest text-neutral-900 dark:text-white">
-            {item.vehicle.plateNumber}
-          </Text>
+          <PlateBadge plate={item.vehicle.plateNumber} size="lg" />
           <Text className="text-sm text-neutral-400 dark:text-neutral-500">
             {formatClockTime(item.job.createdAt)}
           </Text>
@@ -236,14 +234,11 @@ function CollectBody() {
           <ActivityIndicator color="#0891B2" />
         </View>
       ) : entriesList.length === 0 && historyList.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-2xl font-bold text-neutral-900 dark:text-white">
-            Nothing here yet
-          </Text>
-          <Text className="mt-2 text-center text-base text-neutral-500 dark:text-neutral-400">
-            Completed jobs awaiting payment appear here, and paid jobs appear in your history.
-          </Text>
-        </View>
+        <EmptyState
+          icon="cash-outline"
+          title="Nothing here yet"
+          subtitle="Completed jobs awaiting payment appear here, and paid jobs appear in your history."
+        />
       ) : (
         <SectionList
           sections={sections}
