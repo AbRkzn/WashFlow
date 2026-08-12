@@ -3,7 +3,7 @@ import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
 import { customers, jobs, payments, services, vehicles, type Customer, type Job, type Payment, type Service, type Vehicle } from '@/data/schema';
-import { type JobStatus, WORKING_STATUSES } from '@/domain/job';
+import { type JobStatus, ACTIVE_STATUSES } from '@/domain/job';
 import { enqueueChange } from '@/sync/outbox';
 
 export interface NewJob {
@@ -298,7 +298,7 @@ export class JobRepository {
       .innerJoin(vehicles, eq(jobs.vehicleId, vehicles.id))
       .innerJoin(customers, eq(jobs.customerId, customers.id))
       .leftJoin(services, eq(jobs.serviceId, services.id))
-      .where(and(inArray(jobs.status, [...WORKING_STATUSES]), isNull(jobs.deletedAt)))
+      .where(and(inArray(jobs.status, [...ACTIVE_STATUSES]), isNull(jobs.deletedAt)))
       .orderBy(asc(jobs.createdAt));
   }
 
