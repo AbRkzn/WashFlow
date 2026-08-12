@@ -13,6 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { VoidRequestModal } from '@/components/void-request-modal';
+import { PlateBadge } from '@/components/plate-badge';
+import { EmptyState } from '@/components/empty-state';
 import { useQueuedJobs, useVoidJob } from '@/data/queries';
 import { SessionHeader } from '@/components/session-header';
 import { useSessionStore } from '@/stores/session-store';
@@ -86,19 +88,17 @@ export default function CashierQueueScreen() {
           <ActivityIndicator color="#0891B2" />
         </View>
       ) : queued.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Queue is clear</Text>
-          <Text className="mt-2 text-center text-base text-neutral-500 dark:text-neutral-400">
-            New check-ins will appear here.
-          </Text>
-        </View>
+        <EmptyState
+          icon="checkmark-done-outline"
+          title="Queue is clear"
+          subtitle="New check-ins will appear here."
+        />
       ) : filtered.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-2xl font-bold text-neutral-900 dark:text-white">No matches</Text>
-          <Text className="mt-2 text-center text-base text-neutral-500 dark:text-neutral-400">
-            No queued job matches “{query.trim()}”.
-          </Text>
-        </View>
+        <EmptyState
+          icon="search-outline"
+          title="No matches"
+          subtitle={`No queued job matches "${query.trim()}".`}
+        />
       ) : (
         <FlatList
           data={filtered}
@@ -119,9 +119,7 @@ export default function CashierQueueScreen() {
               </View>
               <View className="flex-1">
                 <View className="flex-row items-center justify-between">
-                  <Text className="text-xl font-bold tracking-widest text-neutral-900 dark:text-white">
-                    {item.vehicle.plateNumber}
-                  </Text>
+                  <PlateBadge plate={item.vehicle.plateNumber} />
                   <Text className="text-sm text-neutral-400 dark:text-neutral-500">
                     {formatClockTime(item.job.createdAt)}
                   </Text>

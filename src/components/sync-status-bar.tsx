@@ -17,32 +17,36 @@ export function SyncStatusBar() {
   const offline = data.pending > 0 && data.lastError !== null;
 
   return (
-    <View className="mx-4 mb-1 flex-row items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-2.5 dark:border-neutral-800 dark:bg-neutral-900">
-      <View className="flex-1 flex-row items-center gap-2">
-        {syncing ? (
-          <ActivityIndicator size="small" color="#0891B2" />
-        ) : offline ? (
-          <Ionicons name="cloud-offline-outline" size={18} color="#D97706" />
-        ) : data.pending > 0 ? (
-          <Ionicons name="cloud-upload-outline" size={18} color="#0891B2" />
-        ) : (
-          <Ionicons name="cloud-done-outline" size={18} color="#16A34A" />
-        )}
-        <View>
-          <Text className="text-xs font-semibold text-neutral-900 dark:text-white">
-            {data.pending > 0 ? `${data.pending} change${data.pending === 1 ? '' : 's'} pending` : 'All changes synced'}
-          </Text>
-          <Text className="text-[11px] text-neutral-400 dark:text-neutral-500">
-            Last sync {lastSynced}
-          </Text>
+    <View className="mx-4 mb-1.5 flex-row items-center gap-2 rounded-full border border-neutral-200 bg-white py-1.5 pl-2 pr-1.5 dark:border-neutral-800 dark:bg-neutral-900">
+      {syncing ? (
+        <ActivityIndicator size="small" color="#0891B2" />
+      ) : offline ? (
+        <View className="rounded-full bg-amber-100 p-1.5 dark:bg-amber-950">
+          <Ionicons name="cloud-offline-outline" size={14} color="#D97706" />
         </View>
+      ) : data.pending > 0 ? (
+        <View className="rounded-full bg-brand-100 p-1.5 dark:bg-brand-950">
+          <Ionicons name="cloud-upload-outline" size={14} color="#0891B2" />
+        </View>
+      ) : (
+        <View className="rounded-full bg-green-100 p-1.5 dark:bg-green-950">
+          <Ionicons name="cloud-done-outline" size={14} color="#16A34A" />
+        </View>
+      )}
+      <View className="flex-1">
+        <Text className="text-[11px] font-semibold text-neutral-900 dark:text-white">
+          {data.pending > 0 ? `${data.pending} change${data.pending === 1 ? '' : 's'} pending` : 'All changes synced'}
+        </Text>
+        <Text className="text-[10px] text-neutral-400 dark:text-neutral-500">
+          Last sync {lastSynced}
+        </Text>
       </View>
       <Pressable
         onPress={() => runSync.mutate()}
         disabled={syncing}
-        className="rounded-lg bg-brand-600 px-3 py-1.5 active:bg-brand-700 disabled:opacity-50"
+        className="rounded-full bg-brand-600 px-3 py-1.5 active:bg-brand-700 disabled:opacity-50"
       >
-        <Text className="text-xs font-semibold text-white">{syncing ? 'Syncing…' : 'Sync now'}</Text>
+        <Text className="text-[11px] font-semibold text-white">{syncing ? 'Syncing…' : 'Sync now'}</Text>
       </Pressable>
     </View>
   );

@@ -3,6 +3,7 @@ import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SessionHeader } from '@/components/session-header';
+import { EmptyState } from '@/components/empty-state';
 import { useVehicleHistory } from '@/data/queries';
 import type { VehicleHistoryEntry } from '@/data/repositories';
 import { JOB_STATUS_LABELS, type JobStatus } from '@/domain/job';
@@ -100,12 +101,11 @@ export default function VehicleHistoryScreen() {
             ) : null}
 
             {list.length === 0 ? (
-              <View className="items-center justify-center px-8 py-16">
-                <Text className="text-2xl font-bold text-neutral-900 dark:text-white">No visits yet</Text>
-                <Text className="mt-2 text-center text-base text-neutral-500 dark:text-neutral-400">
-                  Check in this plate to start its history.
-                </Text>
-              </View>
+              <EmptyState
+                icon="time-outline"
+                title="No visits yet"
+                subtitle="Check in this plate to start its history."
+              />
             ) : (
               list.map((entry) => <HistoryCard key={entry.job.id} entry={entry} />)
             )}

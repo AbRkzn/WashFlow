@@ -15,12 +15,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { jobKeys, recentPlatesKeys, useActiveServices, useQueuedCount, useRecentPlates } from '@/data/queries';
+import { jobKeys, recentPlatesKeys, useActiveServices, useDaySlots, useQueuedCount, useRecentPlates } from '@/data/queries';
 import { SessionHeader } from '@/components/session-header';
 import { checkIn, findActiveJobForPlate, lookupByPlate, type VehicleMatch } from '@/services/checkin';
 import { formatPesos } from '@/utils/money';
 import type { QueueEntry } from '@/data/repositories';
 import { JOB_STATUS_LABELS } from '@/domain/job';
+import { todayKey } from '@/services/appointments';
 
 export default function CashierCheckInScreen() {
   const router = useRouter();
@@ -40,6 +41,13 @@ export default function CashierCheckInScreen() {
   const { data: services, isLoading: servicesLoading } = useActiveServices();
   const { data: recentPlates = [] } = useRecentPlates();
   const { data: queuedCount = 0 } = useQueuedCount();
+  const { data: daySlots } = useDaySlots(todayKey());
+  const bookingsCount = (daySlots ?? []).filter((slot) => slot.entry).length;
+
+  const stats = [
+    { label: 'Queued', value: queuedCount, icon: 'list-outline' },
+    { label: 'Bookings', value: bookingsCount, icon: 'calendar-outline' },
+  ] as const;
 
   const selectedService = useMemo(
     () => services?.find((service) => service.id === selectedServiceId) ?? null,
@@ -163,6 +171,23 @@ export default function CashierCheckInScreen() {
                 <Text className="text-xs font-bold text-white">{queuedCount}</Text>
               </View>
             </Pressable>
+          </View>
+
+          <View className="mt-3 flex-row gap-2">
+            {stats.map((stat) => (
+              <View
+                key={stat.label}
+                className="flex-1 rounded-2xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900"
+              >
+                <Ionicons name={stat.icon} size={16} color="#0891B2" />
+                <Text className="mt-1 text-lg font-bold text-neutral-900 dark:text-white">
+                  {stat.value}
+                </Text>
+                <Text className="text-[11px] font-medium uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                  {stat.label}
+                </Text>
+              </View>
+            ))}
           </View>
 
           {recentPlates.length > 0 ? (

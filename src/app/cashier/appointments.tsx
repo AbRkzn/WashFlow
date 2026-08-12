@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppointmentBookModal } from '@/components/appointment-book-modal';
 import { SessionHeader } from '@/components/session-header';
+import { PlateBadge } from '@/components/plate-badge';
+import { EmptyState } from '@/components/empty-state';
 import {
   useCancelAppointment,
   useCheckInAppointment,
@@ -108,12 +110,11 @@ export default function CashierAppointmentsScreen() {
           <ActivityIndicator color="#0891B2" />
         </View>
       ) : (slots ?? []).length === 0 ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-2xl font-bold text-neutral-900 dark:text-white">No slots</Text>
-          <Text className="mt-2 text-center text-base text-neutral-500 dark:text-neutral-400">
-            No appointment slots are configured for this day.
-          </Text>
-        </View>
+        <EmptyState
+          icon="calendar-outline"
+          title="No slots"
+          subtitle="No appointment slots are configured for this day."
+        />
       ) : (
         <FlatList
           data={slots}
@@ -163,9 +164,9 @@ export default function CashierAppointmentsScreen() {
                     </View>
                   ) : null}
                 </View>
-                <Text className="mt-1 text-lg font-bold tracking-widest text-neutral-900 dark:text-white">
-                  {entry.vehicle.plateNumber}
-                </Text>
+                <View className="mt-2 self-start">
+                  <PlateBadge plate={entry.vehicle.plateNumber} />
+                </View>
                 <Text className="text-sm font-medium text-neutral-600 dark:text-neutral-300">
                   {entry.customer.name}
                 </Text>

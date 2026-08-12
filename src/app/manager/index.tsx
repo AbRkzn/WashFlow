@@ -7,9 +7,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { RoleGuard } from '@/components/role-guard';
 import { SessionHeader } from '@/components/session-header';
 import { VoidRequestModal } from '@/components/void-request-modal';
+import { PlateBadge } from '@/components/plate-badge';
 import {
   useApproveVoidRequest,
   useDayClose,
+  useDayReport,
   useEmployeePerformance,
   useForceAssign,
   usePendingConflicts,
@@ -175,6 +177,23 @@ export default function ManagerHome() {
   const { data: pendingConflicts = [] } = usePendingConflicts();
   const { data: todayClose } = useDayClose(dateKey());
   const { data: performance = [] } = useEmployeePerformance(dateKey());
+  const { data: todayReport } = useDayReport(dateKey());
+
+  const queuedCount = (board ?? []).filter((e) => e.job.status === 'queued').length;
+  const workingCount = (board ?? []).filter((e) =>
+    ['assigned', 'in_progress', 'quality_check'].includes(e.job.status),
+  ).length;
+  const readyCount = (board ?? []).filter((e) => e.job.status === 'completed').length;
+  const stats = [
+    { label: 'Queued', value: queuedCount, icon: 'list-outline' },
+    { label: 'Working', value: workingCount, icon: 'construct-outline' },
+    { label: 'Ready', value: readyCount, icon: 'checkmark-done-outline' },
+    {
+      label: 'Revenue',
+      value: todayReport ? formatPesos(todayReport.revenueCents) : '—',
+      icon: 'wallet-outline',
+    },
+  ] as const;
 
   const forceAssign = useForceAssign();
   const reassignJob = useReassignJob();
@@ -283,6 +302,23 @@ export default function ManagerHome() {
         <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
           <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Day Board</Text>
 
+          <View className="mt-3 flex-row gap-2">
+            {stats.map((stat) => (
+              <View
+                key={stat.label}
+                className="flex-1 rounded-2xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900"
+              >
+                <Ionicons name={stat.icon} size={16} color="#0891B2" />
+                <Text className="mt-1 text-lg font-bold text-neutral-900 dark:text-white">
+                  {stat.value}
+                </Text>
+                <Text className="text-[11px] font-medium uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                  {stat.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+
           {performance.length > 0 ? (
             <View className="mt-3">
               <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
@@ -349,9 +385,7 @@ export default function ManagerHome() {
                     className="mb-3 rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
                   >
                     <View className="flex-row items-center justify-between">
-                      <Text className="text-xl font-bold tracking-widest text-neutral-900 dark:text-white">
-                        {entry.vehicle.plateNumber}
-                      </Text>
+                      <PlateBadge plate={entry.vehicle.plateNumber} size="lg" />
                       <Text className="text-sm text-neutral-400 dark:text-neutral-500">
                         {formatClockTime(entry.job.createdAt)}
                       </Text>
@@ -432,9 +466,7 @@ export default function ManagerHome() {
                   className="mb-3 rounded-2xl border border-red-200 bg-white p-4 dark:border-red-900 dark:bg-neutral-900"
                 >
                   <View className="flex-row items-center justify-between">
-                    <Text className="text-xl font-bold tracking-widest text-neutral-900 dark:text-white">
-                      {entry.vehicle.plateNumber}
-                    </Text>
+                    <PlateBadge plate={entry.vehicle.plateNumber} size="lg" />
                     <Text className="text-sm text-neutral-400 dark:text-neutral-500">
                       {formatClockTime(entry.request.createdAt)}
                     </Text>
