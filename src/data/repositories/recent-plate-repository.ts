@@ -1,10 +1,16 @@
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, or, sql } from 'drizzle-orm';
 
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
-import { recentPlates, type RecentPlate } from '@/data/schema';
+import { customers, recentPlates, vehicles, type RecentPlate } from '@/data/schema';
 import { enqueueChange } from '@/sync/outbox';
 import { normalizePlate } from './vehicle-repository';
+
+export interface RecentPlateWithCustomer {
+  id: string;
+  plate: string;
+  customerName: string | null;
+}
 
 export class RecentPlateRepository {
   constructor(private readonly db: Database) {}
@@ -37,6 +43,27 @@ export class RecentPlateRepository {
     return this.db
       .select()
       .from(recentPlates)
+      .orderBy(desc(recentPlates.lastUsedAt))
+      .limit(limit);
+  }
+
+  /** Recent plates joined with their owning customer's name, for display. */
+  async listRecentWithCustomers(limit = 5): Promise<RecentPlateWithCustomer[]> {
+    return this.db
+      .select({
+        id: recentPlates.id,
+        plate: recentPlates.plate,
+        customerName: customers.name,
+      })
+      .from(recentPlates)
+      .leftJoin(vehicles, eq(recentPlates.plate, vehicles.plateNumber))
+      .leftJoin(customers, eq(vehicles.customerId, customers.id))
+      .where(
+        and(
+          isNull(recentPlates.deletedAt),
+          or(isNull(vehicles.customerId), isNull(customers.deletedAt)),
+        ),
+      )
       .orderBy(desc(recentPlates.lastUsedAt))
       .limit(limit);
   }

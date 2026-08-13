@@ -121,7 +121,7 @@ export function listActiveServices() {
 }
 
 export function listRecentPlates(limit = 5) {
-  return recentPlateRepository.listRecent(limit);
+  return recentPlateRepository.listRecentWithCustomers(limit);
 }
 
 /** Most recent active (queued→quality_check) job for a plate, if any. */
