@@ -1,5 +1,6 @@
 import { db } from '@/data/db';
 import {
+  AppointmentRepository,
   DayCloseRepository,
   ExpenseRepository,
   JobRepository,
@@ -19,6 +20,7 @@ const paymentRepository = new PaymentRepository(db);
 const expenseRepository = new ExpenseRepository(db);
 const dayCloseRepository = new DayCloseRepository(db);
 const userRepository = new UserRepository(db);
+const appointmentRepository = new AppointmentRepository(db);
 
 /**
  * Aggregates a calendar month's activity from local data: finished jobs,
@@ -28,12 +30,13 @@ const userRepository = new UserRepository(db);
  */
 export async function computeMonthlyReport(month: string): Promise<MonthReport> {
   const { from, to } = monthRangeOf(month);
-  const [payments, finished, voided, expenses, dayCloses] = await Promise.all([
+  const [payments, finished, voided, expenses, dayCloses, noShows] = await Promise.all([
     paymentRepository.listBetween(from, to),
     jobRepository.listFinishedBetween(from, to),
     jobRepository.listVoidedBetween(from, to),
     expenseRepository.listBetween(from, to),
     dayCloseRepository.list(),
+    appointmentRepository.listNoShows(),
   ]);
 
   let revenueCents = 0;
@@ -46,6 +49,7 @@ export async function computeMonthlyReport(month: string): Promise<MonthReport> 
 
   const voidedAmountCents = voided.reduce((sum, job) => sum + job.priceCents, 0);
   const expensesCents = expenses.reduce((sum, expense) => sum + expense.amountCents, 0);
+  const noShowCount = noShows.filter((entry) => entry.date.startsWith(`${month}-`)).length;
 
   const closedDays = dayCloses.filter((close) => close.day.startsWith(`${month}-`));
   const activeDays = new Set<string>();
@@ -61,6 +65,7 @@ export async function computeMonthlyReport(month: string): Promise<MonthReport> 
     voidedCount: voided.length,
     voidedAmountCents,
     expensesCents,
+    noShowCount,
     netCents: revenueCents - expensesCents,
     closedDayCount: closedDays.length,
     activeDayCount: activeDays.size,

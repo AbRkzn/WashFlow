@@ -17,6 +17,7 @@ import m0012 from './0012_wakeful_snowbird.sql';
 import m0013 from './0013_bitter_thunderbird.sql';
 import m0014 from './0014_green_gravity.sql';
 import m0015 from './0015_calm_quest.sql';
+import m0016 from './0016_smart_luminals.sql';
 
   export default {
     journal,
@@ -36,7 +37,8 @@ m0011,
 m0012,
 m0013,
 m0014,
-m0015
+m0015,
+m0016
     }
   }
   

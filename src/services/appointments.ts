@@ -152,6 +152,32 @@ export async function cancelAppointment(appointmentId: string, actorId: string):
   await logAudit({ actorId, action: 'appointment-cancelled', entity: 'appointment', entityId: appointmentId });
 }
 
+export async function markAppointmentNoShow(appointmentId: string, actorId: string): Promise<void> {
+  const marked = await appointmentRepository.markNoShow(appointmentId);
+  if (!marked) {
+    throw new Error('This appointment is no longer booked.');
+  }
+  await cancelAppointmentReminder(appointmentId);
+  await logAudit({ actorId, action: 'appointment-no-show', entity: 'appointment', entityId: appointmentId });
+}
+
+/** No-show appointments for a given day (with vehicle/customer/service). */
+export async function listDayNoShows(date: string): Promise<AppointmentEntry[]> {
+  return appointmentRepository.listNoShowsForDate(date);
+}
+
+/** No-show appointments for a given day, count only. */
+export async function countDayNoShows(date: string): Promise<number> {
+  const entries = await appointmentRepository.listNoShowsForDate(date);
+  return entries.length;
+}
+
+/** No-show appointment count across a month (by `date` key prefix). */
+export async function countMonthNoShows(month: string): Promise<number> {
+  const all = await appointmentRepository.listNoShows();
+  return all.filter((entry) => entry.date.startsWith(`${month}-`)).length;
+}
+
 /**
  * Auto-reflow used when the server rejects a booked slot (`slot_taken`,
  * first-write-wins). Moves the appointment to the next free slot for the same

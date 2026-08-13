@@ -230,6 +230,39 @@ export class AppointmentRepository {
     return rows.length > 0;
   }
 
+  async markNoShow(id: string, at: number = Date.now()): Promise<boolean> {
+    const rows = await this.db
+      .update(appointments)
+      .set({ status: 'no-show', updatedAt: at, version: sql`${appointments.version} + 1` })
+      .where(and(eq(appointments.id, id), eq(appointments.status, 'booked')))
+      .returning({ id: appointments.id });
+    if (rows.length > 0) {
+      await enqueueChange('appointment', id, 'upsert');
+    }
+    return rows.length > 0;
+  }
+
+  /** Appointments marked no-show for a given day (non-deleted), for reporting. */
+  async listNoShowsForDate(date: string): Promise<AppointmentEntry[]> {
+    return this.db
+      .select(APPOINTMENT_SELECT)
+      .from(appointments)
+      .innerJoin(vehicles, eq(appointments.vehicleId, vehicles.id))
+      .innerJoin(customers, eq(appointments.customerId, customers.id))
+      .leftJoin(services, eq(appointments.serviceId, services.id))
+      .where(and(eq(appointments.date, date), eq(appointments.status, 'no-show'), isNull(appointments.deletedAt)))
+      .orderBy(asc(appointments.slotStart));
+  }
+
+  /** All no-show appointments (non-deleted), for month reporting. */
+  async listNoShows(): Promise<Appointment[]> {
+    return this.db
+      .select()
+      .from(appointments)
+      .where(and(eq(appointments.status, 'no-show'), isNull(appointments.deletedAt)))
+      .orderBy(asc(appointments.slotStart));
+  }
+
   async markCompleted(id: string, jobId: string, at: number = Date.now()): Promise<boolean> {
     const rows = await this.db
       .update(appointments)

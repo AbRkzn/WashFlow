@@ -44,7 +44,7 @@ describe('appointment domain', () => {
 
   it('keeps the slot length and status set stable', () => {
     expect(MIN_SLOT_MINUTES).toBe(30);
-    expect(APPOINTMENT_STATUSES).toEqual(['booked', 'cancelled', 'completed']);
+    expect(APPOINTMENT_STATUSES).toEqual(['booked', 'cancelled', 'completed', 'no-show']);
   });
 });
 

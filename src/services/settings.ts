@@ -1,6 +1,11 @@
 import { db } from '@/data/db';
 import { SettingsRepository } from '@/data/repositories';
-import { DEFAULT_SCHEDULE, SETTING_KEYS, type Schedule } from '@/domain/settings';
+import {
+  DEFAULT_SCHEDULE,
+  DEFAULT_WASHER_SHOW_PRICES,
+  SETTING_KEYS,
+  type Schedule,
+} from '@/domain/settings';
 
 const settingsRepository = new SettingsRepository(db);
 
@@ -23,4 +28,13 @@ export async function setSchedule(schedule: Schedule): Promise<void> {
   await settingsRepository.set(SETTING_KEYS.businessOpenMinutes, String(schedule.openMinutes));
   await settingsRepository.set(SETTING_KEYS.businessCloseMinutes, String(schedule.closeMinutes));
   await settingsRepository.set(SETTING_KEYS.slotMinutes, String(schedule.slotMinutes));
+}
+
+export async function getWasherPriceVisibility(): Promise<boolean> {
+  const raw = await settingsRepository.get(SETTING_KEYS.washerShowPrices);
+  return raw === null ? DEFAULT_WASHER_SHOW_PRICES : raw === '1';
+}
+
+export async function setWasherPriceVisibility(visible: boolean): Promise<void> {
+  await settingsRepository.set(SETTING_KEYS.washerShowPrices, visible ? '1' : '0');
 }

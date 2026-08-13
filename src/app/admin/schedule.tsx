@@ -1,10 +1,15 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RoleGuard } from '@/components/role-guard';
 import { SessionHeader } from '@/components/session-header';
-import { useSchedule, useSetSchedule } from '@/data/queries';
+import {
+  useSchedule,
+  useSetSchedule,
+  useSetWasherPriceVisibility,
+  useWasherPriceVisibility,
+} from '@/data/queries';
 import { DEFAULT_SCHEDULE } from '@/domain/settings';
 import { formatMinutesOfDay } from '@/utils/time';
 
@@ -52,6 +57,8 @@ function TimeRow({
 export default function AdminScheduleScreen() {
   const { data: schedule, isLoading } = useSchedule();
   const setScheduleMutation = useSetSchedule();
+  const { data: washerShowPrices } = useWasherPriceVisibility();
+  const setWasherShowPrices = useSetWasherPriceVisibility();
 
   const [openMinutes, setOpenMinutes] = useState<number | null>(null);
   const [closeMinutes, setCloseMinutes] = useState<number | null>(null);
@@ -159,6 +166,33 @@ export default function AdminScheduleScreen() {
                   Bookings are offered from {formatMinutesOfDay(open)} to {formatMinutesOfDay(close)} in
                   {slot}-minute slots. Conflicting bookings auto-reflow to the next free slot.
                 </Text>
+              </View>
+
+              <View className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1 pr-3">
+                    <Text className="text-sm font-semibold text-neutral-900 dark:text-white">
+                      Show prices to washers
+                    </Text>
+                    <Text className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+                      When off, washers see only the service name, never the price. Defaults to off.
+                    </Text>
+                  </View>
+                  <Switch
+                    value={washerShowPrices ?? false}
+                    onValueChange={(value) => {
+                      setWasherShowPrices.mutate(value, {
+                        onError: (error) =>
+                          Alert.alert(
+                            'Could not save',
+                            error instanceof Error ? error.message : 'Something went wrong.',
+                          ),
+                      });
+                    }}
+                    disabled={setWasherShowPrices.isPending}
+                    trackColor={{ false: '#D4D4D8', true: '#0E7490' }}
+                  />
+                </View>
               </View>
 
               {invalid ? (

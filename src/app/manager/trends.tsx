@@ -58,6 +58,7 @@ export default function ManagerTrends() {
                   label="Voids"
                   value={`${report.voidedCount} · ${formatPesos(report.voidedAmountCents)}`}
                 />
+                <StatRow label="No-shows" value={String(report.noShowCount)} />
                 <StatRow label="Expenses" value={formatPesos(report.expensesCents)} />
                 <View className="my-2 h-px bg-neutral-200 dark:bg-neutral-800" />
                 <StatRow

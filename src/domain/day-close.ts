@@ -23,6 +23,8 @@ export interface DayReport {
   voidedCount: number;
   voidedAmountCents: number;
   expensesCents: number;
+  /** Appointments marked no-show on this day. */
+  noShowCount: number;
   expectedCashCents: number;
 }
 
