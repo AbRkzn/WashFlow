@@ -141,16 +141,18 @@ export default function CashierQueueScreen() {
                 <Pressable
                   onPress={() => handleMove(item.job.id, 'up')}
                   disabled={index === 0 || moveJob.isPending}
-                  className="mt-2 rounded-full p-1 active:bg-neutral-200 disabled:opacity-30 dark:active:bg-neutral-800"
+                  hitSlop={8}
+                  className="mt-1 flex h-9 w-9 items-center justify-center rounded-full active:bg-neutral-200 disabled:opacity-30 dark:active:bg-neutral-800"
                 >
-                  <Ionicons name="chevron-up" size={16} color="#0891B2" />
+                  <Ionicons name="chevron-up" size={18} color="#0891B2" />
                 </Pressable>
                 <Pressable
                   onPress={() => handleMove(item.job.id, 'down')}
                   disabled={index === filtered.length - 1 || moveJob.isPending}
-                  className="mt-1 rounded-full p-1 active:bg-neutral-200 disabled:opacity-30 dark:active:bg-neutral-800"
+                  hitSlop={8}
+                  className="flex h-9 w-9 items-center justify-center rounded-full active:bg-neutral-200 disabled:opacity-30 dark:active:bg-neutral-800"
                 >
-                  <Ionicons name="chevron-down" size={16} color="#0891B2" />
+                  <Ionicons name="chevron-down" size={18} color="#0891B2" />
                 </Pressable>
               </View>
               <View className="flex-1">
