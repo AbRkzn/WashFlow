@@ -36,4 +36,14 @@ export class AuditLogRepository {
       .orderBy(desc(auditLog.createdAt))
       .limit(limit);
   }
+
+  /** Every audit entry, newest first — for the audit trail viewer. */
+  async listAll(limit = 200): Promise<AuditLog[]> {
+    return this.db
+      .select()
+      .from(auditLog)
+      .where(isNull(auditLog.deletedAt))
+      .orderBy(desc(auditLog.createdAt))
+      .limit(limit);
+  }
 }

@@ -388,6 +388,16 @@ export default function ManagerHome() {
             <Ionicons name="trash-outline" size={20} color="#F87171" />
           </Pressable>
 
+          <Pressable
+            onPress={() => router.push('/admin/audit-log')}
+            className="mt-2 flex-row items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3 active:opacity-80 dark:border-neutral-800 dark:bg-neutral-900"
+          >
+            <Text className="text-base font-semibold text-neutral-800 dark:text-neutral-100">
+              Audit trail
+            </Text>
+            <Ionicons name="receipt-outline" size={20} color="#7C3AED" />
+          </Pressable>
+
           {sections.every((s) => s.entries.length === 0) ? (
             <View className="mt-16 items-center">
               <Text className="text-lg font-bold text-neutral-900 dark:text-white">No active jobs</Text>

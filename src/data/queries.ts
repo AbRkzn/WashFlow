@@ -62,6 +62,7 @@ import { buildReceiptForPayment, buildReceiptForJob } from '@/services/receipts'
 import { listAllUsers, provisionUserOnServer, resetRemoteUserPassword, updateRemoteUserRole } from '@/services/users';
 import { computeMonthlyReport, listMonthlyEmployeePerformance } from '@/services/monthly';
 import { getSchedule, setSchedule } from '@/services/settings';
+import { listAuditTrail } from '@/services/audit';
 import type { AdjustmentType } from '@/domain/inventory';
 import type { ExpenseCategory } from '@/domain/expense';
 import type { ConflictResolution } from '@/domain/conflict';
@@ -94,6 +95,11 @@ export const vehicleHistoryKeys = {
 export const userKeys = {
   all: ['users'] as const,
   washers: ['users', 'washers'] as const,
+};
+
+export const auditKeys = {
+  all: ['audit'] as const,
+  trail: ['audit', 'trail'] as const,
 };
 
 export const photoKeys = {
@@ -294,6 +300,13 @@ export function useAllUsers() {
   return useQuery({
     queryKey: userKeys.all,
     queryFn: listAllUsers,
+  });
+}
+
+export function useAuditTrail() {
+  return useQuery({
+    queryKey: auditKeys.trail,
+    queryFn: () => listAuditTrail(200),
   });
 }
 
