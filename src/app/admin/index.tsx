@@ -37,6 +37,7 @@ const managementLinks: QuickLink[] = [
   { label: 'Manage users', href: '/admin/users', icon: 'people-circle-outline', tint: TINT.cyan },
   { label: 'Closed days', href: '/admin/day-closes', icon: 'calendar-outline', tint: TINT.amber },
   { label: 'Void history', href: '/manager/void-history', icon: 'trash-outline', tint: TINT.red },
+  { label: 'Audit trail', href: '/admin/audit-log', icon: 'receipt-outline', tint: TINT.violet },
 ];
 
 function QuickLinkCard({ link }: { link: QuickLink }) {

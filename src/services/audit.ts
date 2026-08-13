@@ -1,7 +1,9 @@
 import { db } from '@/data/db';
-import { AuditLogRepository } from '@/data/repositories';
+import { AuditLogRepository, UserRepository } from '@/data/repositories';
+import type { AuditLog } from '@/data/schema';
 
 const auditRepository = new AuditLogRepository(db);
+const userRepository = new UserRepository(db);
 
 export interface AuditEntry {
   actorId: string;
@@ -9,6 +11,10 @@ export interface AuditEntry {
   entity: string;
   entityId?: string | null;
   details?: Record<string, unknown>;
+}
+
+export interface AuditTrailEntry extends AuditLog {
+  actorName: string | null;
 }
 
 export async function logAudit(entry: AuditEntry): Promise<void> {
@@ -23,4 +29,15 @@ export async function logAudit(entry: AuditEntry): Promise<void> {
   } catch (error) {
     console.warn('Audit write failed (non-fatal)', error);
   }
+}
+
+/** Every audit entry, newest first, with the actor's display name. */
+export async function listAuditTrail(limit = 200): Promise<AuditTrailEntry[]> {
+  const entries = await auditRepository.listAll(limit);
+  const users = await userRepository.listAll();
+  const nameById = new Map(users.map((u) => [u.id, u.name]));
+  return entries.map((entry) => ({
+    ...entry,
+    actorName: nameById.get(entry.actorId) ?? null,
+  }));
 }

@@ -23,10 +23,12 @@ import type { CustomerDirectoryEntry, QueueEntry } from '@/data/repositories';
 import { formatPesos } from '@/utils/money';
 import { JOB_STATUS_LABELS } from '@/domain/job';
 import { todayKey } from '@/services/appointments';
+import { useSessionStore } from '@/stores/session-store';
 
 export default function CashierCheckInScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const actorId = useSessionStore((s) => s.user?.id ?? '');
 
   const [plate, setPlate] = useState('');
   const [match, setMatch] = useState<VehicleMatch | null>(null);
@@ -125,6 +127,7 @@ export default function CashierCheckInScreen() {
         plate,
         serviceId: selectedServiceId,
         newCustomer: match ? undefined : { name: customerName, phone: customerPhone },
+        actorId,
       });
       setSuccess(`${vehicle.plateNumber} queued.`);
       setPlate('');

@@ -10,6 +10,7 @@ import {
   type VehicleHistoryEntry,
 } from '@/data/repositories';
 import type { Customer, Job, Vehicle } from '@/data/schema';
+import { logAudit } from '@/services/audit';
 
 const customerRepository = new CustomerRepository(db);
 const vehicleRepository = new VehicleRepository(db);
@@ -82,7 +83,7 @@ export async function resolveVehicleCustomer(
   return { vehicle, customer };
 }
 
-export async function checkIn(input: CheckInInput): Promise<CheckInResult> {
+export async function checkIn(input: CheckInInput & { actorId?: string }): Promise<CheckInResult> {
   const plate = normalizePlate(input.plate);
   const { vehicle, customer } = await resolveVehicleCustomer(plate, input.newCustomer);
 
@@ -100,6 +101,16 @@ export async function checkIn(input: CheckInInput): Promise<CheckInResult> {
   });
 
   await recentPlateRepository.record(plate);
+
+  if (input.actorId) {
+    await logAudit({
+      actorId: input.actorId,
+      action: 'job-checked-in',
+      entity: 'job',
+      entityId: job.id,
+      details: { plate, service: service.name, priceCents: service.priceCents },
+    });
+  }
 
   return { job, customer, vehicle };
 }
