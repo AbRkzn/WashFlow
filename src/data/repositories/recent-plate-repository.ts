@@ -61,9 +61,11 @@ export class RecentPlateRepository {
       .where(
         and(
           isNull(recentPlates.deletedAt),
-          or(isNull(vehicles.customerId), isNull(customers.deletedAt)),
+          or(isNull(vehicles.deletedAt), isNull(vehicles.id)),
+          or(isNull(customers.deletedAt), isNull(customers.id)),
         ),
       )
+      .groupBy(recentPlates.id)
       .orderBy(desc(recentPlates.lastUsedAt))
       .limit(limit);
   }
