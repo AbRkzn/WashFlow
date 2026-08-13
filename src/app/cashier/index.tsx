@@ -277,12 +277,10 @@ export default function CashierCheckInScreen() {
                   <Pressable
                     onPress={clearSearch}
                     accessibilityLabel="Clear search"
-                    hitSlop={8}
-                    className="mr-3"
+                    hitSlop={6}
+                    className="mr-2 h-10 w-10 items-center justify-center rounded-full active:bg-neutral-200 dark:active:bg-neutral-800"
                   >
-                    <View className="h-7 w-7 items-center justify-center rounded-full bg-neutral-200 active:bg-neutral-300 dark:bg-neutral-700 dark:active:bg-neutral-600">
-                      <Ionicons name="close" size={14} color="#525252" />
-                    </View>
+                    <Ionicons name="close" size={18} color="#525252" />
                   </Pressable>
                 ) : null}
               </View>
