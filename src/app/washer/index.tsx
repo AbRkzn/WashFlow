@@ -16,10 +16,12 @@ import {
   useQueuedJobs,
   useStartJob,
   useWasherBoard,
+  useWasherPriceVisibility,
 } from '@/data/queries';
 import type { QueueEntry } from '@/data/repositories';
 import type { PhotoKind } from '@/data/schema';
 import { JOB_STATUS_LABELS, type JobStatus } from '@/domain/job';
+import { formatPesos } from '@/utils/money';
 import { capturePhoto, pickPhotoFromLibrary } from '@/services/camera';
 import { useSessionStore } from '@/stores/session-store';
 
@@ -41,6 +43,7 @@ function JobCard({
   enablePhotos,
   onAddPhoto,
   photoBusy,
+  showPrice,
 }: {
   entry: QueueEntry;
   buttonLabel?: string;
@@ -49,6 +52,7 @@ function JobCard({
   enablePhotos?: boolean;
   onAddPhoto?: (kind: PhotoKind) => void;
   photoBusy?: boolean;
+  showPrice?: boolean;
 }) {
   const { data: photos } = useJobPhotos(enablePhotos ? entry.job.id : '');
   const [viewingKind, setViewingKind] = useState<PhotoKind | null>(null);
@@ -70,6 +74,7 @@ function JobCard({
       </Text>
       <Text className="text-sm text-neutral-500 dark:text-neutral-400">
         {entry.service?.name ?? 'Service'}
+        {showPrice ? ` · ${formatPesos(entry.job.priceCents)}` : ''}
       </Text>
 
       {entry.job.notes ? (
@@ -138,6 +143,7 @@ export default function WasherHome() {
 
   const { data: myJobs, isLoading: myJobsLoading, isRefetching: myJobsRefetching, refetch: refetchMyJobs } = useWasherBoard(washerId);
   const { data: claimable, isLoading: claimableLoading, isRefetching: claimableRefetching, refetch: refetchClaimable } = useQueuedJobs();
+  const { data: showPrice } = useWasherPriceVisibility();
 
   const claimNext = useClaimNextJob();
   const claim = useClaimJob();
@@ -272,6 +278,7 @@ export default function WasherHome() {
                           buttonLabel={action?.label}
                           onButton={action?.action}
                           busy={busy}
+                          showPrice={showPrice}
                           enablePhotos={entry.job.status === 'assigned' || entry.job.status === 'in_progress'}
                           onAddPhoto={(kind) => onAddPhoto(entry.job.id, kind)}
                           photoBusy={addPhoto.isPending}
@@ -298,6 +305,7 @@ export default function WasherHome() {
                         buttonLabel="Claim"
                         onButton={run(claim, { jobId: entry.job.id, washerId }, 'Job claimed.')}
                         busy={busy}
+                        showPrice={showPrice}
                       />
                     </View>
                   ))

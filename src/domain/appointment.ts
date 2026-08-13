@@ -1,4 +1,4 @@
-export const APPOINTMENT_STATUSES = ['booked', 'cancelled', 'completed'] as const;
+export const APPOINTMENT_STATUSES = ['booked', 'cancelled', 'completed', 'no-show'] as const;
 
 export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
 
@@ -6,6 +6,7 @@ export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
   booked: 'Booked',
   cancelled: 'Cancelled',
   completed: 'Completed',
+  'no-show': 'No-show',
 };
 
 export const MIN_SLOT_MINUTES = 30;

@@ -341,6 +341,17 @@ export async function seedDemoData(db: Database): Promise<void> {
       slotStart: slotStart('10:30'),
     });
   }
+  if (!(await appointments.findById('seed-appt-guest-noshow'))) {
+    await appointments.create({
+      id: 'seed-appt-guest-noshow',
+      vehicleId: guest.vehicleId,
+      customerId: guest.customerId,
+      serviceId: express.id,
+      date: today,
+      slotStart: slotStart('08:00'),
+      status: 'no-show',
+    });
+  }
 
   if (!(await expenses.findById('seed-expense-shampoo'))) {
     await expenses.create({
@@ -376,6 +387,7 @@ export async function seedDemoData(db: Database): Promise<void> {
       voidedCount: 1,
       voidedAmountCents: 19900,
       expensesCents: 89900,
+      noShowCount: 1,
       expectedCashCents: 359800,
       declaredCashCents: 360000,
       varianceCents: 200,

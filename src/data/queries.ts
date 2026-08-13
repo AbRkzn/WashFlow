@@ -61,7 +61,11 @@ import { listPendingConflicts, resolveConflict } from '@/services/conflicts';
 import { buildReceiptForPayment, buildReceiptForJob } from '@/services/receipts';
 import { listAllUsers, provisionUserOnServer, resetRemoteUserPassword, updateRemoteUserRole } from '@/services/users';
 import { computeMonthlyReport, listMonthlyEmployeePerformance } from '@/services/monthly';
-import { getSchedule, setSchedule } from '@/services/settings';
+import { getSchedule, setSchedule, getWasherPriceVisibility, setWasherPriceVisibility } from '@/services/settings';
+import {
+  markAppointmentNoShow,
+  listDayNoShows,
+} from '@/services/appointments';
 import { listAuditTrail } from '@/services/audit';
 import type { AdjustmentType } from '@/domain/inventory';
 import type { ExpenseCategory } from '@/domain/expense';
@@ -127,6 +131,7 @@ export const conflictKeys = {
 export const appointmentKeys = {
   all: ['appointments'] as const,
   day: (date: string) => ['appointments', 'day', date] as const,
+  noShows: (date: string) => ['appointments', 'no-shows', date] as const,
   conflict: (date: string, start: number, duration: number) =>
     ['appointments', 'conflict', date, start, duration] as const,
 };
@@ -163,6 +168,10 @@ export const monthlyKeys = {
 
 export const scheduleKeys = {
   all: ['settings', 'schedule'] as const,
+};
+
+export const washerSettingsKeys = {
+  showPrices: ['settings', 'washer', 'show-prices'] as const,
 };
 
 export function useQueuedJobs() {
@@ -650,6 +659,28 @@ export function useCheckInAppointment() {
   });
 }
 
+export function useDayNoShows(date: string) {
+  return useQuery({
+    queryKey: appointmentKeys.noShows(date),
+    queryFn: () => listDayNoShows(date),
+    enabled: Boolean(date),
+  });
+}
+
+export function useMarkNoShow() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { appointmentId: string; date: string; actorId: string }) =>
+      markAppointmentNoShow(input.appointmentId, input.actorId),
+    onSuccess: (_appointment, vars) => {
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.day(vars.date) });
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.noShows(vars.date) });
+      queryClient.invalidateQueries({ queryKey: dayCloseKeys.all });
+      queryClient.invalidateQueries({ queryKey: monthlyKeys.all });
+    },
+  });
+}
+
 export function useSchedule() {
   return useQuery({
     queryKey: scheduleKeys.all,
@@ -664,6 +695,23 @@ export function useSetSchedule() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: scheduleKeys.all });
       queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+    },
+  });
+}
+
+export function useWasherPriceVisibility() {
+  return useQuery({
+    queryKey: washerSettingsKeys.showPrices,
+    queryFn: getWasherPriceVisibility,
+  });
+}
+
+export function useSetWasherPriceVisibility() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (visible: boolean) => setWasherPriceVisibility(visible),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: washerSettingsKeys.showPrices });
     },
   });
 }

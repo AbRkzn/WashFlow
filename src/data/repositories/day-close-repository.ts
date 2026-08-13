@@ -17,6 +17,7 @@ export interface NewDayClose {
   voidedCount: number;
   voidedAmountCents: number;
   expensesCents: number;
+  noShowCount: number;
   expectedCashCents: number;
   declaredCashCents: number;
   varianceCents: number;

@@ -1,5 +1,6 @@
 import { db } from '@/data/db';
 import {
+  AppointmentRepository,
   DayCloseRepository,
   ExpenseRepository,
   JobRepository,
@@ -22,6 +23,7 @@ const jobRepository = new JobRepository(db);
 const paymentRepository = new PaymentRepository(db);
 const expenseRepository = new ExpenseRepository(db);
 const userRepository = new UserRepository(db);
+const appointmentRepository = new AppointmentRepository(db);
 
 export interface WasherPerformance {
   washerId: string;
@@ -37,11 +39,12 @@ export interface WasherPerformance {
  */
 export async function computeDayReport(day: string): Promise<DayReport> {
   const { from, to } = dayRangeOf(day);
-  const [payments, finished, voided, expenses] = await Promise.all([
+  const [payments, finished, voided, expenses, noShows] = await Promise.all([
     paymentRepository.listBetween(from, to),
     jobRepository.listFinishedBetween(from, to),
     jobRepository.listVoidedBetween(from, to),
     expenseRepository.listBetween(from, to),
+    appointmentRepository.listNoShowsForDate(day),
   ]);
 
   const revenueCents = payments
@@ -63,6 +66,7 @@ export async function computeDayReport(day: string): Promise<DayReport> {
     voidedCount: voided.length,
     voidedAmountCents,
     expensesCents,
+    noShowCount: noShows.length,
     expectedCashCents: revenueCents,
   };
 }
@@ -105,6 +109,7 @@ export async function closeDay(
       expectedCashCents: report.expectedCashCents,
       declaredCashCents: declared,
       varianceCents: variance,
+      noShowCount: report.noShowCount,
     },
   });
   await notifyDayClose(report.jobCount, report.revenueCents, variance);

@@ -13,6 +13,8 @@ export interface MonthReport {
   voidedCount: number;
   voidedAmountCents: number;
   expensesCents: number;
+  /** Appointments marked no-show during this month. */
+  noShowCount: number;
   netCents: number;
   closedDayCount: number;
   /** Distinct local calendar days with any payment, finished job, or expense. */

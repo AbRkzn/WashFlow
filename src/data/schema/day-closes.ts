@@ -14,6 +14,7 @@ export const dayCloses = sqliteTable('day_closes', {
   voidedCount: integer('voided_count').notNull(),
   voidedAmountCents: integer('voided_amount_cents').notNull(),
   expensesCents: integer('expenses_cents').notNull(),
+  noShowCount: integer('no_show_count').notNull().default(0),
   expectedCashCents: integer('expected_cash_cents').notNull(),
   declaredCashCents: integer('declared_cash_cents').notNull(),
   varianceCents: integer('variance_cents').notNull(),

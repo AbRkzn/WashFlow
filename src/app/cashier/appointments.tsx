@@ -9,7 +9,9 @@ import { EmptyState } from '@/components/empty-state';
 import {
   useCancelAppointment,
   useCheckInAppointment,
+  useDayNoShows,
   useDaySlots,
+  useMarkNoShow,
 } from '@/data/queries';
 import type { BookAppointmentResult } from '@/services/appointments';
 import { shiftDateKey, todayKey } from '@/services/appointments';
@@ -34,8 +36,10 @@ export default function CashierAppointmentsScreen() {
   const [bookTarget, setBookTarget] = useState<BookTarget | null>(null);
 
   const { data: slots, isLoading, isRefetching, refetch } = useDaySlots(date);
+  const { data: noShows } = useDayNoShows(date);
   const cancelAppointment = useCancelAppointment();
   const checkInAppointment = useCheckInAppointment();
+  const markNoShow = useMarkNoShow();
 
   const reportError = (error: unknown) =>
     Alert.alert('Action failed', error instanceof Error ? error.message : 'Something went wrong.');
@@ -63,6 +67,21 @@ export default function CashierAppointmentsScreen() {
       .mutateAsync({ appointmentId, date, actorId })
       .then(() => Alert.alert('Cancelled', 'Appointment cancelled.'))
       .catch(reportError);
+  };
+
+  const handleNoShow = (appointmentId: string) => {
+    Alert.alert('Mark as no-show?', 'The customer did not show up for this booking.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Mark no-show',
+        style: 'destructive',
+        onPress: () =>
+          markNoShow
+            .mutateAsync({ appointmentId, date, actorId })
+            .then(() => Alert.alert('No-show', 'Appointment marked as no-show.'))
+            .catch(reportError),
+      },
+    ]);
   };
 
   return (
@@ -196,6 +215,15 @@ export default function CashierAppointmentsScreen() {
                     <Text className="text-center text-sm font-semibold text-white">Check in</Text>
                   </Pressable>
                   <Pressable
+                    onPress={() => handleNoShow(entry.appointment.id)}
+                    disabled={markNoShow.isPending}
+                    className="rounded-xl border border-amber-300 px-4 py-2.5 active:bg-amber-50 dark:border-amber-700 dark:active:bg-amber-950"
+                  >
+                    <Text className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                      No-show
+                    </Text>
+                  </Pressable>
+                  <Pressable
                     onPress={() => handleCancel(entry.appointment.id)}
                     disabled={cancelAppointment.isPending}
                     className="rounded-xl border border-neutral-300 px-4 py-2.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
@@ -208,6 +236,41 @@ export default function CashierAppointmentsScreen() {
               </View>
             );
           }}
+          ListFooterComponent={
+            (noShows ?? []).length > 0 ? (
+              <View className="mt-4">
+                <Text className="mb-2 text-sm font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                  No-shows · {(noShows ?? []).length}
+                </Text>
+                {(noShows ?? []).map((entry) => (
+                  <View
+                    key={entry.appointment.id}
+                    className="mb-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950"
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-base font-bold text-amber-800 dark:text-amber-200">
+                        {formatSlotTime(entry.appointment.slotStart)}
+                      </Text>
+                      <View className="rounded-full bg-amber-100 px-2 py-0.5 dark:bg-amber-900">
+                        <Text className="text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                          NO-SHOW
+                        </Text>
+                      </View>
+                    </View>
+                    <View className="mt-2 self-start">
+                      <PlateBadge plate={entry.vehicle.plateNumber} />
+                    </View>
+                    <Text className="mt-1 text-sm font-medium text-amber-900 dark:text-amber-100">
+                      {entry.customer.name}
+                    </Text>
+                    <Text className="text-sm text-amber-700 dark:text-amber-300">
+                      {entry.service?.name ?? 'Service'}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : null
+          }
         />
       )}
 
