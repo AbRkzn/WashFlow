@@ -17,9 +17,11 @@ export interface NewPayment {
 export class PaymentRepository {
   constructor(private readonly db: Database) {}
 
-  async add(input: NewPayment): Promise<Payment> {
+  async add(input: NewPayment & { id?: string }): Promise<Payment> {
+    const base = baseRecord();
     const record: Payment = {
-      ...baseRecord(),
+      ...base,
+      id: input.id ?? base.id,
       jobId: input.jobId,
       amountCents: input.amountCents,
       method: input.method ?? 'cash',

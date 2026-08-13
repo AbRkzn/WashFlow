@@ -17,9 +17,11 @@ export interface NewExpense {
 export class ExpenseRepository {
   constructor(private readonly db: Database) {}
 
-  async create(input: NewExpense): Promise<Expense> {
+  async create(input: NewExpense & { id?: string }): Promise<Expense> {
+    const base = baseRecord();
     const record: Expense = {
-      ...baseRecord(),
+      ...base,
+      id: input.id ?? base.id,
       amountCents: input.amountCents,
       category: input.category && isExpenseCategory(input.category) ? input.category : 'other',
       description: input.description ?? null,

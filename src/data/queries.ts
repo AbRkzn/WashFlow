@@ -29,6 +29,7 @@ import {
   listCollectibleJobs,
   listCollectionHistory,
   listPendingVoidRequests,
+  listVoidHistory,
   payJob,
   rejectVoidRequest,
   requestVoid,
@@ -109,6 +110,7 @@ export const paymentKeys = {
 export const voidRequestKeys = {
   all: ['void-requests'] as const,
   pending: ['void-requests', 'pending'] as const,
+  history: ['void-requests', 'history'] as const,
 };
 
 export const conflictKeys = {
@@ -492,6 +494,7 @@ export function useVoidJob() {
       queryClient.invalidateQueries({ queryKey: jobKeys.all });
       queryClient.invalidateQueries({ queryKey: paymentKeys.collectible });
       queryClient.invalidateQueries({ queryKey: voidRequestKeys.pending });
+      queryClient.invalidateQueries({ queryKey: voidRequestKeys.history });
     },
   });
 }
@@ -505,6 +508,7 @@ export function useVoidJobAsManager() {
       queryClient.invalidateQueries({ queryKey: jobKeys.all });
       queryClient.invalidateQueries({ queryKey: paymentKeys.collectible });
       queryClient.invalidateQueries({ queryKey: voidRequestKeys.pending });
+      queryClient.invalidateQueries({ queryKey: voidRequestKeys.history });
     },
   });
 }
@@ -517,6 +521,7 @@ export function useRequestVoid() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: jobKeys.all });
       queryClient.invalidateQueries({ queryKey: voidRequestKeys.pending });
+      queryClient.invalidateQueries({ queryKey: voidRequestKeys.history });
     },
   });
 }
@@ -528,6 +533,13 @@ export function usePendingVoidRequests() {
   });
 }
 
+export function useVoidHistory() {
+  return useQuery({
+    queryKey: voidRequestKeys.history,
+    queryFn: listVoidHistory,
+  });
+}
+
 export function useApproveVoidRequest() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -536,6 +548,7 @@ export function useApproveVoidRequest() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: jobKeys.all });
       queryClient.invalidateQueries({ queryKey: voidRequestKeys.pending });
+      queryClient.invalidateQueries({ queryKey: voidRequestKeys.history });
     },
   });
 }
@@ -547,6 +560,7 @@ export function useRejectVoidRequest() {
       rejectVoidRequest(input.requestId, input.managerId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: voidRequestKeys.pending });
+      queryClient.invalidateQueries({ queryKey: voidRequestKeys.history });
     },
   });
 }

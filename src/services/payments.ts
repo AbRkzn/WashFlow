@@ -21,6 +21,11 @@ export interface PendingVoidEntry extends VoidRequestEntry {
   requesterName: string | null;
 }
 
+export interface VoidHistoryEntry extends VoidRequestEntry {
+  requesterName: string | null;
+  resolverName: string | null;
+}
+
 export interface CollectionHistoryEntry extends PaymentHistoryEntry {
   receivedByName: string | null;
 }
@@ -187,6 +192,22 @@ export async function listPendingVoidRequests(): Promise<PendingVoidEntry[]> {
     ...entry,
     requesterName: entry.request.requestedBy
       ? (nameById.get(entry.request.requestedBy) ?? null)
+      : null,
+  }));
+}
+
+/** Every void request (pending/approved/rejected), newest first, with actor names. */
+export async function listVoidHistory(): Promise<VoidHistoryEntry[]> {
+  const entries = await voidRequestRepository.listAllWithDetails();
+  const users = await userRepository.listAll();
+  const nameById = new Map(users.map((u) => [u.id, u.name]));
+  return entries.map((entry) => ({
+    ...entry,
+    requesterName: entry.request.requestedBy
+      ? (nameById.get(entry.request.requestedBy) ?? null)
+      : null,
+    resolverName: entry.request.resolvedBy
+      ? (nameById.get(entry.request.resolvedBy) ?? null)
       : null,
   }));
 }

@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
@@ -45,9 +45,11 @@ const VOID_REQUEST_SELECT = {
 export class VoidRequestRepository {
   constructor(private readonly db: Database) {}
 
-  async create(input: NewVoidRequest): Promise<VoidRequest> {
+  async create(input: NewVoidRequest & { id?: string }): Promise<VoidRequest> {
+    const base = baseRecord();
     const record: VoidRequest = {
-      ...baseRecord(),
+      ...base,
+      id: input.id ?? base.id,
       jobId: input.jobId,
       requestedBy: input.requestedBy,
       reason: input.reason ?? null,
@@ -79,6 +81,18 @@ export class VoidRequestRepository {
       .leftJoin(services, eq(jobs.serviceId, services.id))
       .where(eq(voidRequests.status, 'pending'))
       .orderBy(asc(voidRequests.createdAt));
+  }
+
+  /** Every void request (pending/approved/rejected), newest first — for the void history. */
+  async listAllWithDetails(): Promise<VoidRequestEntry[]> {
+    return this.db
+      .select(VOID_REQUEST_SELECT)
+      .from(voidRequests)
+      .innerJoin(jobs, eq(voidRequests.jobId, jobs.id))
+      .innerJoin(vehicles, eq(jobs.vehicleId, vehicles.id))
+      .innerJoin(customers, eq(jobs.customerId, customers.id))
+      .leftJoin(services, eq(jobs.serviceId, services.id))
+      .orderBy(desc(voidRequests.createdAt));
   }
 
   async resolve(

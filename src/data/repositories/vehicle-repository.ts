@@ -68,9 +68,11 @@ export class VehicleRepository {
       .orderBy(asc(vehicles.plateNumber));
   }
 
-  async create(input: NewVehicle): Promise<Vehicle> {
+  async create(input: NewVehicle & { id?: string }): Promise<Vehicle> {
+    const base = baseRecord();
     const record: Vehicle = {
-      ...baseRecord(),
+      ...base,
+      id: input.id ?? base.id,
       plateNumber: normalizePlate(input.plateNumber),
       customerId: input.customerId ?? null,
       make: input.make ?? null,
