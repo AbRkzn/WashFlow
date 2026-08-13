@@ -254,7 +254,7 @@ export default function CashierCheckInScreen() {
               Search customer name
             </Text>
             <View className="flex-row gap-2">
-              <View className="relative flex-1">
+              <View className="flex-1 flex-row items-center rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
                 <TextInput
                   value={plate}
                   onChangeText={(text) => {
@@ -271,14 +271,14 @@ export default function CashierCheckInScreen() {
                   autoCorrect={false}
                   returnKeyType="search"
                   onSubmitEditing={() => handleLookup()}
-                  className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-4 pr-12 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
+                  className="flex-1 px-4 py-4 text-base text-neutral-900 dark:text-white"
                 />
                 {plate.length > 0 ? (
                   <Pressable
                     onPress={clearSearch}
                     accessibilityLabel="Clear search"
                     hitSlop={8}
-                    className="absolute right-2 top-1/2 z-10 -translate-y-1/2"
+                    className="mr-3"
                   >
                     <View className="h-7 w-7 items-center justify-center rounded-full bg-neutral-200 active:bg-neutral-300 dark:bg-neutral-700 dark:active:bg-neutral-600">
                       <Ionicons name="close" size={14} color="#525252" />
