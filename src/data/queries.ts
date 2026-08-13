@@ -11,8 +11,10 @@ import {
   listWashers,
   listWorkingBoard,
   markDone,
+  moveQueuedJob,
   reassignJob,
   releaseJob,
+  setJobNotes,
   startJob,
 } from '@/services/jobs';
 import {
@@ -416,6 +418,24 @@ export function useReleaseJob() {
   const invalidate = useInvalidateJobs();
   return useMutation({
     mutationFn: (input: { jobId: string; actorId: string }) => releaseJob(input.jobId, input.actorId),
+    onSuccess: invalidate,
+  });
+}
+
+export function useSetJobNotes() {
+  const invalidate = useInvalidateJobs();
+  return useMutation({
+    mutationFn: (input: { jobId: string; notes: string | null; actorId: string }) =>
+      setJobNotes(input.jobId, input.notes, input.actorId),
+    onSuccess: invalidate,
+  });
+}
+
+export function useMoveQueuedJob() {
+  const invalidate = useInvalidateJobs();
+  return useMutation({
+    mutationFn: (input: { jobId: string; direction: 'up' | 'down'; actorId: string }) =>
+      moveQueuedJob(input.jobId, input.direction, input.actorId),
     onSuccess: invalidate,
   });
 }

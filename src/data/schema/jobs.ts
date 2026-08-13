@@ -15,6 +15,7 @@ export const jobs = sqliteTable('jobs', {
   priceCents: integer('price_cents').notNull(),
   assignedTo: text('assigned_to'),
   notes: text('notes'),
+  queueOrder: integer('queue_order'),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
   ...syncColumns,

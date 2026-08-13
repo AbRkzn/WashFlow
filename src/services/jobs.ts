@@ -147,3 +147,32 @@ export async function releaseJob(jobId: string, actorId: string): Promise<void> 
   }
   await logAudit({ actorId, action: 'job-release', entity: 'job', entityId: jobId });
 }
+
+export async function setJobNotes(jobId: string, notes: string | null, actorId: string): Promise<void> {
+  const updated = await jobRepository.setNotes(jobId, notes?.trim() ? notes.trim() : null);
+  if (!updated) {
+    throw new Error('Job not found.');
+  }
+  await logAudit({ actorId, action: 'job-notes', entity: 'job', entityId: jobId, details: { notes } });
+}
+
+/** Moves a queued job up/down in the queue; re-sequences the whole queue. */
+export async function moveQueuedJob(jobId: string, direction: 'up' | 'down', actorId: string): Promise<void> {
+  const queued = await jobRepository.listQueuedWithDetails();
+  const index = queued.findIndex((entry) => entry.job.id === jobId);
+  const target = direction === 'up' ? index - 1 : index + 1;
+  if (index < 0 || target < 0 || target >= queued.length) {
+    throw new Error('Cannot move this job that direction.');
+  }
+  const reordered = [...queued];
+  const [moved] = reordered.splice(index, 1);
+  reordered.splice(target, 0, moved);
+  await jobRepository.reorderQueued(reordered.map((entry) => entry.job.id));
+  await logAudit({
+    actorId,
+    action: 'job-reorder',
+    entity: 'job',
+    entityId: jobId,
+    details: { direction, from: index, to: target },
+  });
+}
