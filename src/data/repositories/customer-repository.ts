@@ -116,8 +116,15 @@ export class CustomerRepository {
     return rows[0];
   }
 
-  async create(input: NewCustomer): Promise<Customer> {
-    const record: Customer = { ...baseRecord(), name: input.name, phone: input.phone ?? null, notes: input.notes ?? null };
+  async create(input: NewCustomer & { id?: string }): Promise<Customer> {
+    const base = baseRecord();
+    const record: Customer = {
+      ...base,
+      id: input.id ?? base.id,
+      name: input.name,
+      phone: input.phone ?? null,
+      notes: input.notes ?? null,
+    };
     await this.db.insert(customers).values(record);
     await enqueueChange('customer', record.id, 'upsert');
     return record;

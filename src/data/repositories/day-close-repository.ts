@@ -35,9 +35,11 @@ export class DayCloseRepository {
     return rows[0];
   }
 
-  async create(input: NewDayClose): Promise<DayClose> {
+  async create(input: NewDayClose & { id?: string }): Promise<DayClose> {
+    const base = baseRecord();
     const record: DayClose = {
-      ...baseRecord(),
+      ...base,
+      id: input.id ?? base.id,
       ...input,
       revenueByMethodCents: JSON.stringify(input.revenueByMethodCents ?? {}),
       notes: input.notes ?? null,

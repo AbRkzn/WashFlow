@@ -86,11 +86,11 @@ const defaultInventoryItems = [
 ];
 
 const demoVehicles = [
-  { customerName: 'Juan Dela Cruz', phone: '09171234567', plate: 'ABC-1234', make: 'Toyota', model: 'Vios', color: 'White', year: 2019 },
-  { customerName: 'Maria Santos', phone: '09179876543', plate: 'XYZ-5678', make: 'Honda', model: 'Civic', color: 'Black', year: 2021 },
-  { customerName: 'Walk-in Guest', phone: null, plate: 'QWE-9999', make: 'Mitsubishi', model: 'Mirage', color: 'Gray', year: 2020 },
-  { customerName: 'Ana Reyes', phone: '09172345678', plate: 'FGH-2345', make: 'Suzuki', model: 'Ertiga', color: 'Red', year: 2022 },
-  { customerName: 'Carlo Mendoza', phone: '09176543210', plate: 'KLM-8765', make: 'Nissan', model: 'Navara', color: 'Blue', year: 2018 },
+  { customerId: 'seed-customer-juan', vehicleId: 'seed-vehicle-abc-1234', customerName: 'Juan Dela Cruz', phone: '09171234567', plate: 'ABC-1234', make: 'Toyota', model: 'Vios', color: 'White', year: 2019 },
+  { customerId: 'seed-customer-maria', vehicleId: 'seed-vehicle-xyz-5678', customerName: 'Maria Santos', phone: '09179876543', plate: 'XYZ-5678', make: 'Honda', model: 'Civic', color: 'Black', year: 2021 },
+  { customerId: 'seed-customer-guest', vehicleId: 'seed-vehicle-qwe-9999', customerName: 'Walk-in Guest', phone: null, plate: 'QWE-9999', make: 'Mitsubishi', model: 'Mirage', color: 'Gray', year: 2020 },
+  { customerId: 'seed-customer-ana', vehicleId: 'seed-vehicle-fgh-2345', customerName: 'Ana Reyes', phone: '09172345678', plate: 'FGH-2345', make: 'Suzuki', model: 'Ertiga', color: 'Red', year: 2022 },
+  { customerId: 'seed-customer-carlo', vehicleId: 'seed-vehicle-klm-8765', customerName: 'Carlo Mendoza', phone: '09176543210', plate: 'KLM-8765', make: 'Nissan', model: 'Navara', color: 'Blue', year: 2018 },
 ];
 
 export async function seedIfEmpty(db: Database): Promise<void> {
@@ -130,12 +130,46 @@ export async function seedIfEmpty(db: Database): Promise<void> {
     }
   }
 
-  const customers = new CustomerRepository(db);
-  if ((await customers.list()).length > 0) {
-    return;
+  // ── Service recipes (auto-deduct inventory) ─────────────────────────────
+  const serviceRecipes = new ServiceInventoryRepository(db);
+  if ((await serviceRecipes.listAll()).length === 0) {
+    const byService = new Map(
+      (await services.listActive()).map((service) => [service.name, service]),
+    );
+    const express = byService.get('Express Wash');
+    const fullDetail = byService.get('Full Detail');
+    const premium = byService.get('Premium Detail');
+    const byItemName = new Map((await inventory.listAll()).map((item) => [item.name, item]));
+    const shampoo = byItemName.get('Car shampoo');
+    const towels = byItemName.get('Microfiber towels');
+    const protectant = byItemName.get('Interior protectant');
+    if (express && shampoo) {
+      await serviceRecipes.create({ serviceId: express.id, inventoryItemId: shampoo.id, quantityUsed: 1 });
+    }
+    if (fullDetail && shampoo && towels) {
+      await serviceRecipes.create({ serviceId: fullDetail.id, inventoryItemId: shampoo.id, quantityUsed: 1 });
+      await serviceRecipes.create({ serviceId: fullDetail.id, inventoryItemId: towels.id, quantityUsed: 2 });
+    }
+    if (premium && shampoo && towels && protectant) {
+      await serviceRecipes.create({ serviceId: premium.id, inventoryItemId: shampoo.id, quantityUsed: 1 });
+      await serviceRecipes.create({ serviceId: premium.id, inventoryItemId: towels.id, quantityUsed: 3 });
+      await serviceRecipes.create({ serviceId: premium.id, inventoryItemId: protectant.id, quantityUsed: 1 });
+    }
   }
 
-  // ── Demo dataset ─────────────────────────────────────────────────────────
+  // Demo dataset only auto-seeds on a fresh install (no customers yet). The
+  // "Load demo data" button calls `seedDemoData` directly to force it.
+  const demoCustomers = new CustomerRepository(db);
+  if ((await demoCustomers.list()).length === 0) {
+    await seedDemoData(db);
+  }
+}
+
+/** Idempotent demo dataset: creates demo customers/vehicles/jobs/etc. only when
+ *  their deterministic rows are missing, so re-running is always safe. */
+export async function seedDemoData(db: Database): Promise<void> {
+  const services = new ServiceRepository(db);
+  const customers = new CustomerRepository(db);
   const vehicles = new VehicleRepository(db);
   const jobs = new JobRepository(db);
   const payments = new PaymentRepository(db);
@@ -155,62 +189,55 @@ export async function seedIfEmpty(db: Database): Promise<void> {
     return;
   }
 
-  // ── Service recipes (auto-deduct inventory) ─────────────────────────────
-  const serviceRecipes = new ServiceInventoryRepository(db);
-  if ((await serviceRecipes.listAll()).length === 0) {
-    const byItemName = new Map((await inventory.listAll()).map((item) => [item.name, item]));
-    const shampoo = byItemName.get('Car shampoo');
-    const towels = byItemName.get('Microfiber towels');
-    const protectant = byItemName.get('Interior protectant');
-    if (express && shampoo) {
-      await serviceRecipes.create({ serviceId: express.id, inventoryItemId: shampoo.id, quantityUsed: 1 });
-    }
-    if (fullDetail && shampoo && towels) {
-      await serviceRecipes.create({ serviceId: fullDetail.id, inventoryItemId: shampoo.id, quantityUsed: 1 });
-      await serviceRecipes.create({ serviceId: fullDetail.id, inventoryItemId: towels.id, quantityUsed: 2 });
-    }
-    if (premium && shampoo && towels && protectant) {
-      await serviceRecipes.create({ serviceId: premium.id, inventoryItemId: shampoo.id, quantityUsed: 1 });
-      await serviceRecipes.create({ serviceId: premium.id, inventoryItemId: towels.id, quantityUsed: 3 });
-      await serviceRecipes.create({ serviceId: premium.id, inventoryItemId: protectant.id, quantityUsed: 1 });
-    }
-  }
-
   const vehicleRows: { customerId: string; vehicleId: string }[] = [];
   for (const demo of demoVehicles) {
-    const customer = await customers.create({
-      name: demo.customerName,
-      phone: demo.phone ?? undefined,
-    });
-    const vehicle = await vehicles.create({
-      plateNumber: demo.plate,
-      customerId: customer.id,
-      make: demo.make,
-      model: demo.model,
-      color: demo.color,
-      year: demo.year,
-    });
+    let customer = await customers.findById(demo.customerId);
+    if (!customer) {
+      customer = await customers.create({
+        id: demo.customerId,
+        name: demo.customerName,
+        phone: demo.phone ?? undefined,
+      });
+    }
+    let vehicle = await vehicles.findById(demo.vehicleId);
+    if (!vehicle) {
+      vehicle = await vehicles.create({
+        id: demo.vehicleId,
+        plateNumber: demo.plate,
+        customerId: customer.id,
+        make: demo.make,
+        model: demo.model,
+        color: demo.color,
+        year: demo.year,
+      });
+    }
     vehicleRows.push({ customerId: customer.id, vehicleId: vehicle.id });
     await recentPlates.record(demo.plate);
   }
 
   const [juan, maria, guest, ana, carlo] = vehicleRows;
 
-  const queuedJuan = await jobs.create({
+  const ensureJob = async (id: string, input: Parameters<typeof jobs.create>[0]) => {
+    const existing = await jobs.findById(id);
+    if (existing) return existing;
+    return jobs.create({ ...input, id });
+  };
+
+  const queuedJuan = await ensureJob('seed-job-queued-juan', {
     customerId: juan.customerId,
     vehicleId: juan.vehicleId,
     serviceId: express.id,
     priceCents: express.priceCents,
     status: 'queued',
   });
-  const queuedMaria = await jobs.create({
+  const queuedMaria = await ensureJob('seed-job-queued-maria', {
     customerId: maria.customerId,
     vehicleId: maria.vehicleId,
     serviceId: fullDetail.id,
     priceCents: fullDetail.priceCents,
     status: 'queued',
   });
-  await jobs.create({
+  await ensureJob('seed-job-assigned-ana', {
     customerId: ana.customerId,
     vehicleId: ana.vehicleId,
     serviceId: express.id,
@@ -218,7 +245,7 @@ export async function seedIfEmpty(db: Database): Promise<void> {
     status: 'assigned',
     assignedTo: 'seed-washer-1',
   });
-  await jobs.create({
+  await ensureJob('seed-job-progress-carlo', {
     customerId: carlo.customerId,
     vehicleId: carlo.vehicleId,
     serviceId: premium.id,
@@ -226,7 +253,7 @@ export async function seedIfEmpty(db: Database): Promise<void> {
     status: 'in_progress',
     assignedTo: 'seed-washer-2',
   });
-  await jobs.create({
+  await ensureJob('seed-job-qc-guest', {
     customerId: guest.customerId,
     vehicleId: guest.vehicleId,
     serviceId: fullDetail.id,
@@ -234,7 +261,7 @@ export async function seedIfEmpty(db: Database): Promise<void> {
     status: 'quality_check',
     assignedTo: 'seed-washer-1',
   });
-  const completedJuan = await jobs.create({
+  await ensureJob('seed-job-completed-juan', {
     customerId: juan.customerId,
     vehicleId: juan.vehicleId,
     serviceId: express.id,
@@ -242,7 +269,7 @@ export async function seedIfEmpty(db: Database): Promise<void> {
     status: 'completed',
     assignedTo: 'seed-washer-2',
   });
-  const paidMaria = await jobs.create({
+  const paidMaria = await ensureJob('seed-job-paid-maria', {
     customerId: maria.customerId,
     vehicleId: maria.vehicleId,
     serviceId: express.id,
@@ -250,7 +277,7 @@ export async function seedIfEmpty(db: Database): Promise<void> {
     status: 'paid',
     assignedTo: 'seed-washer-2',
   });
-  const paidCarlo = await jobs.create({
+  const paidCarlo = await ensureJob('seed-job-paid-carlo', {
     customerId: carlo.customerId,
     vehicleId: carlo.vehicleId,
     serviceId: fullDetail.id,
@@ -258,7 +285,7 @@ export async function seedIfEmpty(db: Database): Promise<void> {
     status: 'paid',
     assignedTo: 'seed-washer-1',
   });
-  const voidedAna = await jobs.create({
+  const voidedAna = await ensureJob('seed-job-voided-ana', {
     customerId: ana.customerId,
     vehicleId: ana.vehicleId,
     serviceId: express.id,
@@ -266,57 +293,80 @@ export async function seedIfEmpty(db: Database): Promise<void> {
     status: 'voided',
   });
 
-  await payments.add({ jobId: paidMaria.id, amountCents: paidMaria.priceCents, receivedBy: 'seed-washer-1' });
-  await payments.add({ jobId: paidCarlo.id, amountCents: paidCarlo.priceCents, method: 'gcash', receivedBy: 'seed-washer-1' });
-  await voidRequests.create({
-    jobId: voidedAna.id,
-    requestedBy: 'seed-washer-2',
-    reason: 'Customer did not push through',
-    status: 'approved',
-    resolvedBy: 'seed-washer-1',
-  });
-  await voidRequests.create({
-    jobId: queuedJuan.id,
-    requestedBy: 'seed-washer-2',
-    reason: 'Customer found a scratch and asked to cancel',
-    status: 'pending',
-  });
+  if (!(await payments.findById('seed-payment-paid-maria'))) {
+    await payments.add({ id: 'seed-payment-paid-maria', jobId: paidMaria.id, amountCents: paidMaria.priceCents, receivedBy: 'seed-washer-1' });
+  }
+  if (!(await payments.findById('seed-payment-paid-carlo'))) {
+    await payments.add({ id: 'seed-payment-paid-carlo', jobId: paidCarlo.id, amountCents: paidCarlo.priceCents, method: 'gcash', receivedBy: 'seed-washer-1' });
+  }
+  if (!(await voidRequests.findById('seed-void-voided-ana'))) {
+    await voidRequests.create({
+      id: 'seed-void-voided-ana',
+      jobId: voidedAna.id,
+      requestedBy: 'seed-washer-2',
+      reason: 'Customer did not push through',
+      status: 'approved',
+      resolvedBy: 'seed-washer-1',
+    });
+  }
+  if (!(await voidRequests.findById('seed-void-pending-juan'))) {
+    await voidRequests.create({
+      id: 'seed-void-pending-juan',
+      jobId: queuedJuan.id,
+      requestedBy: 'seed-washer-2',
+      reason: 'Customer found a scratch and asked to cancel',
+      status: 'pending',
+    });
+  }
 
   const today = toDateKey(Date.now());
   const slotStart = (clock: string) => new Date(`${today}T${clock}:00`).getTime();
-  await appointments.create({
-    vehicleId: juan.vehicleId,
-    customerId: juan.customerId,
-    serviceId: premium.id,
-    date: today,
-    slotStart: slotStart('09:00'),
-  });
-  await appointments.create({
-    vehicleId: maria.vehicleId,
-    customerId: maria.customerId,
-    serviceId: fullDetail.id,
-    date: today,
-    slotStart: slotStart('10:30'),
-  });
+  if (!(await appointments.findById('seed-appt-juan-0900'))) {
+    await appointments.create({
+      id: 'seed-appt-juan-0900',
+      vehicleId: juan.vehicleId,
+      customerId: juan.customerId,
+      serviceId: premium.id,
+      date: today,
+      slotStart: slotStart('09:00'),
+    });
+  }
+  if (!(await appointments.findById('seed-appt-maria-1030'))) {
+    await appointments.create({
+      id: 'seed-appt-maria-1030',
+      vehicleId: maria.vehicleId,
+      customerId: maria.customerId,
+      serviceId: fullDetail.id,
+      date: today,
+      slotStart: slotStart('10:30'),
+    });
+  }
 
-  await expenses.create({
-    amountCents: 89900,
-    category: 'supplies',
-    description: 'Shampoo + microfiber refill',
-    incurredAt: Date.now(),
-    loggedBy: null,
-  });
-  await expenses.create({
-    amountCents: 250000,
-    category: 'utilities',
-    description: 'Water bill',
-    incurredAt: Date.now(),
-    loggedBy: null,
-  });
+  if (!(await expenses.findById('seed-expense-shampoo'))) {
+    await expenses.create({
+      id: 'seed-expense-shampoo',
+      amountCents: 89900,
+      category: 'supplies',
+      description: 'Shampoo + microfiber refill',
+      incurredAt: Date.now(),
+      loggedBy: null,
+    });
+  }
+  if (!(await expenses.findById('seed-expense-water'))) {
+    await expenses.create({
+      id: 'seed-expense-water',
+      amountCents: 250000,
+      category: 'utilities',
+      description: 'Water bill',
+      incurredAt: Date.now(),
+      loggedBy: null,
+    });
+  }
 
-  if ((await dayCloses.list()).length === 0) {
-    const yesterday = dateKey(Date.now() - 24 * 60 * 60 * 1000);
+  const yesterday = dateKey(Date.now() - 24 * 60 * 60 * 1000);
+  if (!(await dayCloses.findByDay(yesterday))) {
     await dayCloses.create({
+      id: 'seed-day-close-yesterday',
       day: yesterday,
       closedBy: 'seed-washer-1',
       closedAt: Date.now() - 24 * 60 * 60 * 1000 + 12 * 60 * 60 * 1000,
@@ -332,8 +382,4 @@ export async function seedIfEmpty(db: Database): Promise<void> {
       notes: 'Demo close — balanced drawer.',
     });
   }
-
-  void queuedJuan;
-  void queuedMaria;
-  void completedJuan;
 }

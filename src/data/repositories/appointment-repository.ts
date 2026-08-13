@@ -45,9 +45,11 @@ const APPOINTMENT_SELECT = {
 export class AppointmentRepository {
   constructor(private readonly db: Database) {}
 
-  async create(input: NewAppointment): Promise<Appointment> {
+  async create(input: NewAppointment & { id?: string }): Promise<Appointment> {
+    const base = baseRecord();
     const record: Appointment = {
-      ...baseRecord(),
+      ...base,
+      id: input.id ?? base.id,
       vehicleId: input.vehicleId,
       customerId: input.customerId,
       serviceId: input.serviceId,

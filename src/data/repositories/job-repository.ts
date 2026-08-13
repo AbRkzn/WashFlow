@@ -50,9 +50,11 @@ const JOB_SELECT = {
 export class JobRepository {
   constructor(private readonly db: Database) {}
 
-  async create(input: NewJob): Promise<Job> {
+  async create(input: NewJob & { id?: string }): Promise<Job> {
+    const base = baseRecord();
     const record: Job = {
-      ...baseRecord(),
+      ...base,
+      id: input.id ?? base.id,
       customerId: input.customerId,
       vehicleId: input.vehicleId,
       serviceId: input.serviceId,
