@@ -119,6 +119,19 @@ export default function CashierAppointmentsScreen() {
         <FlatList
           data={slots}
           keyExtractor={(slot) => String(slot.slotStart)}
+          ListHeaderComponent={
+            (slots ?? []).some((slot) => slot.entry?.appointment.rescheduled) ? (
+              <View className="mb-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950">
+                <Text className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                  Rescheduled by system
+                </Text>
+                <Text className="mt-0.5 text-xs text-amber-700 dark:text-amber-300">
+                  One or more bookings were moved to a later slot because their original time was
+                  taken. Let customers know before pickup.
+                </Text>
+              </View>
+            ) : null
+          }
           contentContainerStyle={{ padding: 16, gap: 8 }}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#0891B2" />

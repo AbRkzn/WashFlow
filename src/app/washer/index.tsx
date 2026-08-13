@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 
@@ -72,6 +72,15 @@ function JobCard({
         {entry.service?.name ?? 'Service'}
       </Text>
 
+      {entry.job.notes ? (
+        <View className="mt-3 rounded-xl bg-amber-50 px-3 py-2 dark:bg-amber-950">
+          <Text className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+            Job note
+          </Text>
+          <Text className="text-sm text-amber-800 dark:text-amber-200">{entry.job.notes}</Text>
+        </View>
+      ) : null}
+
       {enablePhotos && onAddPhoto ? (
         <View className="mt-3 flex-row gap-2">
           <Pressable
@@ -127,8 +136,8 @@ export default function WasherHome() {
   const user = useSessionStore((s) => s.user);
   const washerId = user?.id ?? '';
 
-  const { data: myJobs, isLoading: myJobsLoading } = useWasherBoard(washerId);
-  const { data: claimable, isLoading: claimableLoading } = useQueuedJobs();
+  const { data: myJobs, isLoading: myJobsLoading, isRefetching: myJobsRefetching, refetch: refetchMyJobs } = useWasherBoard(washerId);
+  const { data: claimable, isLoading: claimableLoading, isRefetching: claimableRefetching, refetch: refetchClaimable } = useQueuedJobs();
 
   const claimNext = useClaimNextJob();
   const claim = useClaimJob();
@@ -190,7 +199,20 @@ export default function WasherHome() {
     <RoleGuard roles={['washer', 'manager', 'admin']}>
       <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
         <SessionHeader />
-        <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, gap: 16 }}>
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ padding: 16, gap: 16 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={myJobsRefetching || claimableRefetching}
+              onRefresh={() => {
+                refetchMyJobs();
+                refetchClaimable();
+              }}
+              tintColor="#0891B2"
+            />
+          }
+        >
           <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Job Queue</Text>
 
           <Pressable

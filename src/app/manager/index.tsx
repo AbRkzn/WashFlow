@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RoleGuard } from '@/components/role-guard';
 import { SessionHeader } from '@/components/session-header';
 import { VoidRequestModal } from '@/components/void-request-modal';
+import { JobNotesModal } from '@/components/job-notes-modal';
 import { PlateBadge } from '@/components/plate-badge';
 import {
   useApproveVoidRequest,
@@ -20,6 +21,7 @@ import {
   useRejectVoidRequest,
   useReleaseJob,
   useResolveConflict,
+  useSetJobNotes,
   useVoidJobAsManager,
   useWashers,
   useWorkingBoard,
@@ -202,10 +204,12 @@ export default function ManagerHome() {
   const approveVoid = useApproveVoidRequest();
   const rejectVoid = useRejectVoidRequest();
   const resolveConflict = useResolveConflict();
+  const setJobNotes = useSetJobNotes();
 
   const [picking, setPicking] = useState<PickTarget | null>(null);
   const [detailConflict, setDetailConflict] = useState<ConflictReviewEntry | null>(null);
   const [voidTarget, setVoidTarget] = useState<WorkingEntry | null>(null);
+  const [notesTarget, setNotesTarget] = useState<WorkingEntry | null>(null);
   const busy =
     forceAssign.isPending ||
     reassignJob.isPending ||
@@ -260,6 +264,16 @@ export default function ManagerHome() {
     voidJobAsManager
       .mutateAsync({ jobId: job.id, actorId, reason })
       .then(() => Alert.alert('Done', 'Job voided.'))
+      .catch(reportError);
+  };
+
+  const onSaveNotes = (notes: string) => {
+    if (!notesTarget) return;
+    const { job } = notesTarget;
+    setNotesTarget(null);
+    setJobNotes
+      .mutateAsync({ jobId: job.id, notes, actorId })
+      .then(() => Alert.alert('Done', 'Job notes saved.'))
       .catch(reportError);
   };
 
@@ -399,6 +413,23 @@ export default function ManagerHome() {
                     <Text className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
                       {entry.assignedName ? `Assigned to ${entry.assignedName}` : 'Unassigned'}
                     </Text>
+
+                    {entry.job.notes ? (
+                      <View className="mt-2 rounded-xl bg-amber-50 px-3 py-2 dark:bg-amber-950">
+                        <Text className="text-sm text-amber-800 dark:text-amber-200">
+                          {entry.job.notes}
+                        </Text>
+                      </View>
+                    ) : null}
+
+                    <Pressable
+                      onPress={() => setNotesTarget(entry)}
+                      className="mt-2 self-start rounded-lg border border-neutral-200 px-3 py-1.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
+                    >
+                      <Text className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">
+                        {entry.job.notes ? 'Edit note' : 'Add note'}
+                      </Text>
+                    </Pressable>
 
                     <View className="mt-3 flex-row gap-2">
                       {section.status === 'queued' ? (
@@ -583,6 +614,16 @@ export default function ManagerHome() {
           requireReason
           onClose={() => setVoidTarget(null)}
           onConfirm={onVoidJob}
+        />
+
+        <JobNotesModal
+          key={notesTarget?.job.id ?? 'closed'}
+          visible={notesTarget !== null}
+          title={`Notes · ${notesTarget?.vehicle.plateNumber ?? ''}`}
+          initialNotes={notesTarget?.job.notes ?? null}
+          busy={setJobNotes.isPending}
+          onClose={() => setNotesTarget(null)}
+          onSave={onSaveNotes}
         />
       </SafeAreaView>
     </RoleGuard>

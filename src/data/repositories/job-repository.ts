@@ -60,6 +60,7 @@ export class JobRepository {
       priceCents: input.priceCents,
       assignedTo: input.assignedTo ?? null,
       notes: input.notes ?? null,
+      queueOrder: null,
     };
     await this.db.insert(jobs).values(record);
     await enqueueChange('job', record.id, 'upsert');
@@ -229,7 +230,30 @@ export class JobRepository {
       .innerJoin(customers, eq(jobs.customerId, customers.id))
       .leftJoin(services, eq(jobs.serviceId, services.id))
       .where(and(eq(jobs.status, 'queued'), isNull(jobs.deletedAt)))
-      .orderBy(asc(jobs.createdAt));
+      .orderBy(asc(sql`COALESCE(${jobs.queueOrder}, ${jobs.createdAt})`));
+  }
+
+  async setNotes(id: string, notes: string | null): Promise<boolean> {
+    const rows = await this.db
+      .update(jobs)
+      .set({ notes, updatedAt: Date.now(), version: sql`${jobs.version} + 1` })
+      .where(and(eq(jobs.id, id), isNull(jobs.deletedAt)))
+      .returning({ id: jobs.id });
+    if (rows.length > 0) {
+      await enqueueChange('job', id, 'upsert');
+    }
+    return rows.length > 0;
+  }
+
+  /** Re-orders the queue by assigning sequential positions to the given job ids. */
+  async reorderQueued(orderedIds: string[]): Promise<void> {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await this.db
+        .update(jobs)
+        .set({ queueOrder: i, updatedAt: Date.now(), version: sql`${jobs.version} + 1` })
+        .where(and(eq(jobs.id, orderedIds[i]), eq(jobs.status, 'queued'), isNull(jobs.deletedAt)));
+      await enqueueChange('job', orderedIds[i], 'upsert');
+    }
   }
 
   async listCompletedWithDetails(): Promise<QueueEntry[]> {
