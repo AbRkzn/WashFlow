@@ -47,9 +47,9 @@ export class RecentPlateRepository {
       .limit(limit);
   }
 
-  /** Recent plates joined with their owning customer's name, for display. */
+  /** Recent plates joined with their owning customer's name, deduped by customer. */
   async listRecentWithCustomers(limit = 5): Promise<RecentPlateWithCustomer[]> {
-    return this.db
+    const rows = await this.db
       .select({
         id: recentPlates.id,
         plate: recentPlates.plate,
@@ -66,7 +66,17 @@ export class RecentPlateRepository {
         ),
       )
       .groupBy(recentPlates.id)
-      .orderBy(desc(recentPlates.lastUsedAt))
-      .limit(limit);
+      .orderBy(desc(recentPlates.lastUsedAt));
+
+    const seen = new Set<string>();
+    const deduped: RecentPlateWithCustomer[] = [];
+    for (const row of rows) {
+      const label = row.customerName ?? row.plate;
+      if (seen.has(label)) continue;
+      seen.add(label);
+      deduped.push(row);
+      if (deduped.length >= limit) break;
+    }
+    return deduped;
   }
 }
