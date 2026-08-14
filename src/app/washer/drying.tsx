@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 
 import { BackButton } from '@/components/back-button';
+import { JobNotFound } from '@/components/job-not-found';
 import { PlateBadge } from '@/components/plate-badge';
 import { RoleGuard } from '@/components/role-guard';
 import { Button } from '@/components/ui/button';
@@ -83,14 +84,7 @@ export default function DryingProcessScreen() {
       <RoleGuard roles={['washer', 'manager', 'admin']}>
         <Screen>
           <BackButton />
-          <View className="items-center py-16">
-            <Text className="text-lg font-bold text-neutral-900 dark:text-white">
-              Job not found
-            </Text>
-            <View className="mt-4 w-40">
-              <Button label="Back to jobs" variant="outline" onPress={() => router.back()} />
-            </View>
-          </View>
+          <JobNotFound />
         </Screen>
       </RoleGuard>
     );
@@ -128,16 +122,23 @@ export default function DryingProcessScreen() {
           <ProgressRing
             progress={progress}
             label={formatTime(elapsed)}
-            size={180}
+            size={150}
           />
           <View className="mt-3 flex-row items-center gap-3">
             <Button
               label={running ? 'Pause' : 'Start timer'}
               icon={running ? 'pause' : 'play'}
               size="sm"
+              fullWidth={false}
               onPress={toggleRunning}
             />
-            <Button label="Reset" variant="outline" size="sm" onPress={resetTimer} />
+            <Button
+              label="Reset"
+              variant="outline"
+              size="sm"
+              fullWidth={false}
+              onPress={resetTimer}
+            />
           </View>
         </View>
 

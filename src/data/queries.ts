@@ -66,6 +66,7 @@ import { listAllUsers, provisionUserOnServer, resetRemoteUserPassword, updateRem
 import { computeMonthlyReport, listMonthlyEmployeePerformance } from '@/services/monthly';
 import { getSchedule, setSchedule, getWasherPriceVisibility, setWasherPriceVisibility } from '@/services/settings';
 import { listAuditTrail } from '@/services/audit';
+import { listRecentActivity } from '@/services/notifications-feed';
 import { listPendingSyncEntries } from '@/services/sync-pending';
 import type { AdjustmentType } from '@/domain/inventory';
 import type { ExpenseCategory } from '@/domain/expense';
@@ -338,6 +339,17 @@ export function useAuditTrail() {
   return useQuery({
     queryKey: auditKeys.trail,
     queryFn: () => listAuditTrail(200),
+  });
+}
+
+export function useRecentActivity() {
+  return useQuery({
+    queryKey: ['activity', 'recent'] as const,
+    queryFn: async () => {
+      const result = await listRecentActivity(50);
+      console.log('[feed] useRecentActivity query resolved, items=', result.length);
+      return result;
+    },
   });
 }
 

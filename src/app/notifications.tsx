@@ -6,143 +6,21 @@ import { BackButton } from '@/components/back-button';
 import { RoleGuard } from '@/components/role-guard';
 import { Card } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
-import { useAuditTrail } from '@/data/queries';
-import type { AuditTrailEntry } from '@/services/audit';
-import { auditActionLabel, auditDetailsSummary } from '@/domain/audit';
+import { useRecentActivity } from '@/data/queries';
 import { useSessionStore } from '@/stores/session-store';
 import { formatClockTime } from '@/utils/time';
 
-interface NotificationItem {
-  id: string;
-  actorId: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  tint: string;
-  title: string;
-  body: string;
-  createdAt: number;
-}
-
-/** Maps audit actions to notification-style cards. Only events a device user cares about. */
-function toNotification(entry: AuditTrailEntry): NotificationItem | null {
-  const body = auditDetailsSummary(entry.details);
-  switch (entry.action) {
-    case 'job-claim':
-      return {
-        id: entry.id,
-        actorId: entry.actorId,
-        icon: 'hand-left-outline',
-        tint: '#0891B2',
-        title: 'Job claimed',
-        body: body || 'A job was added to your list.',
-        createdAt: entry.createdAt,
-      };
-    case 'job-force-assign':
-    case 'job-reassign':
-      return {
-        id: entry.id,
-        actorId: entry.actorId,
-        icon: 'swap-horizontal-outline',
-        tint: '#7C3AED',
-        title: auditActionLabel(entry.action),
-        body: body || 'A job was assigned to you.',
-        createdAt: entry.createdAt,
-      };
-    case 'job-started':
-      return {
-        id: entry.id,
-        actorId: entry.actorId,
-        icon: 'play-circle-outline',
-        tint: '#0891B2',
-        title: 'Job started',
-        body: body || 'You started working on a vehicle.',
-        createdAt: entry.createdAt,
-      };
-    case 'job-quality-check':
-      return {
-        id: entry.id,
-        actorId: entry.actorId,
-        icon: 'checkmark-done-outline',
-        tint: '#7C3AED',
-        title: 'Sent to quality check',
-        body: body || 'Your job is waiting for inspection.',
-        createdAt: entry.createdAt,
-      };
-    case 'job-completed':
-      return {
-        id: entry.id,
-        actorId: entry.actorId,
-        icon: 'checkmark-circle-outline',
-        tint: '#059669',
-        title: 'Job completed',
-        body: body || 'A job was marked complete.',
-        createdAt: entry.createdAt,
-      };
-    case 'job-paid':
-      return {
-        id: entry.id,
-        actorId: entry.actorId,
-        icon: 'cash-outline',
-        tint: '#059669',
-        title: 'Payment collected',
-        body: body || 'A payment was recorded.',
-        createdAt: entry.createdAt,
-      };
-    case 'appointment-booked':
-      return {
-        id: entry.id,
-        actorId: entry.actorId,
-        icon: 'calendar-outline',
-        tint: '#0891B2',
-        title: 'Appointment booked',
-        body: body || 'A new appointment was booked.',
-        createdAt: entry.createdAt,
-      };
-    case 'appointment-auto-rescheduled':
-    case 'appointment-sync-reflowed':
-      return {
-        id: entry.id,
-        actorId: entry.actorId,
-        icon: 'alert-circle-outline',
-        tint: '#D97706',
-        title: 'Appointment rescheduled',
-        body: body || 'A booking was moved to the next free slot.',
-        createdAt: entry.createdAt,
-      };
-    case 'day-close':
-      return {
-        id: entry.id,
-        actorId: entry.actorId,
-        icon: 'sunny-outline',
-        tint: '#0891B2',
-        title: 'Day closed',
-        body: body || 'The day was closed with a report.',
-        createdAt: entry.createdAt,
-      };
-    case 'void-requested':
-      return {
-        id: entry.id,
-        actorId: entry.actorId,
-        icon: 'shield-checkmark-outline',
-        tint: '#D97706',
-        title: 'Void requested',
-        body: body || 'A void request needs review.',
-        createdAt: entry.createdAt,
-      };
-    default:
-      return null;
-  }
-}
-
 export default function NotificationsScreen() {
   const user = useSessionStore((s) => s.user);
-  const { data: trail, isLoading, isRefetching, refetch } = useAuditTrail();
-  const [filterMine, setFilterMine] = useState(true);
+  const { data: items, isLoading, isError, refetch, isRefetching } = useRecentActivity();
+  const [filterMine, setFilterMine] = useState(false);
 
-  const items = useMemo(() => {
-    const mapped = (trail ?? []).map(toNotification).filter((item): item is NotificationItem => item !== null);
-    const mine = filterMine && user ? mapped.filter((item) => item.actorId === user.id) : mapped;
-    return mine;
-  }, [trail, filterMine, user]);
+  const visibleItems = useMemo(() => {
+    if (!filterMine || !user) return items ?? [];
+    return (items ?? []).filter(
+      (item) => item.actorId === user.id || item.assignedTo === user.id,
+    );
+  }, [items, filterMine, user]);
 
   const clearVisible = () => {
     Alert.alert('Notifications are read-only', 'This feed mirrors your on-device audit trail. Nothing to clear.');
@@ -194,12 +72,28 @@ export default function NotificationsScreen() {
         </View>
 
         {isLoading ? (
-          <View className="items-center py-16">
+          <View className="flex-1 items-center justify-center py-16">
             <ActivityIndicator color="#0891B2" />
+          </View>
+        ) : isError ? (
+          <View className="flex-1 items-center justify-center px-6 py-16">
+            <Ionicons name="cloud-offline-outline" size={40} color="#DC2626" />
+            <Text className="mt-3 text-base font-semibold text-red-600 dark:text-red-400">
+              Could not load your feed
+            </Text>
+            <Text className="mt-1 text-center text-sm text-neutral-500 dark:text-neutral-400">
+              Something went wrong while reading recent activity.
+            </Text>
+            <Pressable
+              onPress={() => refetch()}
+              className="mt-4 rounded-xl bg-brand-600 px-5 py-2.5 active:opacity-80"
+            >
+              <Text className="text-sm font-semibold text-white">Try again</Text>
+            </Pressable>
           </View>
         ) : (
           <FlatList
-            data={items}
+            data={visibleItems}
             keyExtractor={(item) => item.id}
             className="mt-4 flex-1"
             contentContainerStyle={{ paddingBottom: 24, gap: 10 }}

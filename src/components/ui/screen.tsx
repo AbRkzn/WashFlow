@@ -27,7 +27,11 @@ export function Screen({ children, scroll = true, padded = true, style }: Screen
           {content}
         </ScrollView>
       ) : (
-        <View className="flex-1">{content}</View>
+        <View className="flex-1">
+          <View className={padded ? 'flex-1 px-5' : 'flex-1'} style={style}>
+            {children}
+          </View>
+        </View>
       )}
     </SafeAreaView>
   );

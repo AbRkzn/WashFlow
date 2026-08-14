@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 
 import { BackButton } from '@/components/back-button';
+import { JobNotFound } from '@/components/job-not-found';
 import { PlateBadge } from '@/components/plate-badge';
 import { RoleGuard } from '@/components/role-guard';
 import { Button } from '@/components/ui/button';
@@ -47,17 +48,7 @@ export default function WashingProcessScreen() {
       <RoleGuard roles={['washer', 'manager', 'admin']}>
         <Screen>
           <BackButton />
-          <View className="items-center py-16">
-            <Text className="text-lg font-bold text-neutral-900 dark:text-white">
-              Job not found
-            </Text>
-            <Text className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-              This job is not on your board.
-            </Text>
-            <View className="mt-4 w-40">
-              <Button label="Back to jobs" variant="outline" onPress={() => router.back()} />
-            </View>
-          </View>
+          <JobNotFound />
         </Screen>
       </RoleGuard>
     );
