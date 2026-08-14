@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, Switch, Text, View } f
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RoleGuard } from '@/components/role-guard';
-import { SessionHeader } from '@/components/session-header';
+import { ScreenHeader } from '@/components/screen-header';
 import {
   useSchedule,
   useSetSchedule,
@@ -103,13 +103,11 @@ export default function AdminScheduleScreen() {
   return (
     <RoleGuard roles={['admin']}>
       <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-        <SessionHeader />
+        <ScreenHeader
+          title="Schedule"
+          subtitle="Booking hours and appointment slot size. Changes sync to all devices."
+        />
         <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, gap: 16 }}>
-          <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Schedule</Text>
-          <Text className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            Booking hours and appointment slot size. Changes sync to all devices.
-          </Text>
-
           {isLoading ? (
             <View className="py-10">
               <ActivityIndicator color="#0891B2" />

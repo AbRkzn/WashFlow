@@ -59,17 +59,6 @@ export function SessionHeader() {
             />
           </Pressable>
           <Pressable
-            onPress={() => router.push('/profile')}
-            accessibilityLabel="Profile"
-            className="rounded-xl border border-neutral-200 p-2 active:opacity-70 dark:border-neutral-700"
-          >
-            <Ionicons
-              name="person-circle-outline"
-              size={18}
-              color={colorScheme === 'dark' ? brand[400] : brand[700]}
-            />
-          </Pressable>
-          <Pressable
             onPress={handleSignOut}
             disabled={busy}
             className="rounded-xl px-3 py-1.5 active:opacity-70"

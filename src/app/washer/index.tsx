@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { PhotoViewerModal } from '@/components/photo-viewer-modal';
 import { PlateBadge } from '@/components/plate-badge';
 import { RoleGuard } from '@/components/role-guard';
-import { SessionHeader } from '@/components/session-header';
+import { ScreenHeader } from '@/components/screen-header';
 import {
   useAddJobPhoto,
   useApproveQuality,
@@ -222,7 +222,7 @@ export default function WasherHome() {
   return (
     <RoleGuard roles={['washer', 'manager', 'admin']}>
       <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-        <SessionHeader />
+        <ScreenHeader title="Job Queue" />
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ padding: 16, gap: 16 }}
@@ -237,8 +237,6 @@ export default function WasherHome() {
             />
           }
         >
-          <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Job Queue</Text>
-
           <Pressable
             onPress={onClaimNext}
             disabled={busy}

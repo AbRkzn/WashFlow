@@ -2,7 +2,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RoleGuard } from '@/components/role-guard';
-import { SessionHeader } from '@/components/session-header';
+import { ScreenHeader } from '@/components/screen-header';
 import { useDayCloses, useReopenDay } from '@/data/queries';
 import { formatDay } from '@/domain/day-close';
 import { useSessionStore } from '@/stores/session-store';
@@ -38,13 +38,8 @@ export default function AdminDayCloses() {
   return (
     <RoleGuard roles={['admin']}>
       <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-        <SessionHeader />
+        <ScreenHeader title="Closed days" subtitle="Reopen a day to allow a corrected close." />
         <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
-          <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Closed days</Text>
-          <Text className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            Reopen a day to allow a corrected close.
-          </Text>
-
           {isLoading ? (
             <ActivityIndicator color="#0891B2" className="py-10" />
           ) : closes.length === 0 ? (

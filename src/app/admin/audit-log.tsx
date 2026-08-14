@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RoleGuard } from '@/components/role-guard';
-import { SessionHeader } from '@/components/session-header';
+import { ScreenHeader } from '@/components/screen-header';
 import { useAuditTrail } from '@/data/queries';
 import type { AuditTrailEntry } from '@/services/audit';
 import {
@@ -55,20 +55,21 @@ export default function AuditLogScreen() {
   return (
     <RoleGuard roles={['admin', 'manager']}>
       <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-        <SessionHeader />
-        <View className="flex-row items-center justify-between px-4 py-3">
-          <Text className="text-lg font-bold text-neutral-900 dark:text-white">Audit trail</Text>
-          {list.length > 50 ? (
-            <Pressable
-              onPress={() => setExpanded((e) => !e)}
-              className="rounded-lg border border-neutral-300 px-3 py-1.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
-            >
-              <Text className="text-xs font-semibold text-neutral-700 dark:text-neutral-200">
-                {expanded ? 'Show recent 50' : 'Show all'}
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
+        <ScreenHeader
+          title="Audit trail"
+          right={
+            list.length > 50 ? (
+              <Pressable
+                onPress={() => setExpanded((e) => !e)}
+                className="rounded-lg border border-neutral-300 px-3 py-1.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
+              >
+                <Text className="text-xs font-semibold text-neutral-700 dark:text-neutral-200">
+                  {expanded ? 'Show recent 50' : 'Show all'}
+                </Text>
+              </Pressable>
+            ) : null
+          }
+        />
 
         {isLoading ? (
           <View className="flex-1 items-center justify-center">

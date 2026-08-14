@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RoleGuard } from '@/components/role-guard';
-import { SessionHeader } from '@/components/session-header';
+import { ScreenHeader } from '@/components/screen-header';
 import {
   useActiveServices,
   useInventory,
@@ -75,15 +75,10 @@ export default function AdminServiceInventoryScreen() {
   return (
     <RoleGuard roles={['admin']}>
       <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-        <SessionHeader />
-        <View className="px-4 py-3">
-          <Text className="text-lg font-bold text-neutral-900 dark:text-white">
-            Service inventory
-          </Text>
-          <Text className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            When a job for a service is completed, its recipe items are auto-deducted from stock.
-          </Text>
-        </View>
+        <ScreenHeader
+          title="Service inventory"
+          subtitle="When a job for a service is completed, its recipe items are auto-deducted from stock."
+        />
 
         {isLoading ? (
           <View className="flex-1 items-center justify-center">

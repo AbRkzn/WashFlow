@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RoleGuard } from '@/components/role-guard';
-import { SessionHeader } from '@/components/session-header';
+import { ScreenHeader } from '@/components/screen-header';
 import { Card } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -39,13 +39,8 @@ export default function DashboardScreen() {
   return (
     <RoleGuard roles={['manager', 'admin']}>
       <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-        <SessionHeader />
+        <ScreenHeader title="Dashboard" subtitle="Live overview of today's operations." />
         <View className="flex-1 px-5 pb-8">
-          <Text className="mt-2 text-2xl font-bold text-neutral-900 dark:text-white">Dashboard</Text>
-          <Text className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            Live overview of today&apos;s operations.
-          </Text>
-
           {reportLoading ? (
             <ActivityIndicator color="#0891B2" className="py-12" />
           ) : (

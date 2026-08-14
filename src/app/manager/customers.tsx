@@ -15,7 +15,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RoleGuard } from '@/components/role-guard';
-import { SessionHeader } from '@/components/session-header';
+import { ScreenHeader } from '@/components/screen-header';
 import { useCustomerDirectory, useRegisterCustomer, useUpdateCustomer } from '@/data/queries';
 import { useSessionStore } from '@/stores/session-store';
 import { formatPesos } from '@/utils/money';
@@ -148,17 +148,18 @@ export default function ManagerCustomersScreen() {
   return (
     <RoleGuard roles={['manager', 'admin']}>
       <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-        <SessionHeader />
-        <View className="flex-row items-center justify-between px-4 py-3">
-          <Text className="text-lg font-bold text-neutral-900 dark:text-white">Customer directory</Text>
-          <Pressable
-            onPress={openAdd}
-            className="flex-row items-center gap-1.5 rounded-full bg-brand-600 px-4 py-2 active:bg-brand-700"
-          >
-            <Ionicons name="person-add" size={16} color="#FFFFFF" />
-            <Text className="text-sm font-semibold text-white">Add customer</Text>
-          </Pressable>
-        </View>
+        <ScreenHeader
+          title="Customer directory"
+          right={
+            <Pressable
+              onPress={openAdd}
+              className="flex-row items-center gap-1.5 rounded-full bg-brand-600 px-4 py-2 active:bg-brand-700"
+            >
+              <Ionicons name="person-add" size={16} color="#FFFFFF" />
+              <Text className="text-sm font-semibold text-white">Add customer</Text>
+            </Pressable>
+          }
+        />
 
         <View className="px-4 pb-2">
           <TextInput
