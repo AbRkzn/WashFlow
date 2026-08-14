@@ -42,12 +42,15 @@ import {
   checkInAppointment,
   findAppointmentConflict,
   listDaySlots,
+  markAppointmentNoShow,
+  listDayNoShows,
 } from '@/services/appointments';
 import { adjustStock, createInventoryItem, deleteInventoryItem, listInventory, listLowStockItems } from '@/services/inventory';
 import { listServiceUsageConfig, saveServiceUsages } from '@/services/service-inventory';
 import { createService, deleteService, listAllServices, updateService } from '@/services/services';
 import { listDayExpenses, logExpense } from '@/services/expenses';
 import { listCustomerDirectory, registerCustomer, updateCustomer } from '@/services/customers';
+import { listVehicleDirectory, registerVehicle } from '@/services/vehicles';
 import { loadDemoData } from '@/services/demo';
 import {
   closeDay,
@@ -62,11 +65,8 @@ import { buildReceiptForPayment, buildReceiptForJob } from '@/services/receipts'
 import { listAllUsers, provisionUserOnServer, resetRemoteUserPassword, updateRemoteUserRole } from '@/services/users';
 import { computeMonthlyReport, listMonthlyEmployeePerformance } from '@/services/monthly';
 import { getSchedule, setSchedule, getWasherPriceVisibility, setWasherPriceVisibility } from '@/services/settings';
-import {
-  markAppointmentNoShow,
-  listDayNoShows,
-} from '@/services/appointments';
 import { listAuditTrail } from '@/services/audit';
+import { listPendingSyncEntries } from '@/services/sync-pending';
 import type { AdjustmentType } from '@/domain/inventory';
 import type { ExpenseCategory } from '@/domain/expense';
 import type { ConflictResolution } from '@/domain/conflict';
@@ -254,6 +254,28 @@ export function useVehicleHistory(vehicleId: string) {
 export const customerDirectoryKeys = {
   all: ['customers', 'directory'] as const,
 };
+
+export const vehicleDirectoryKeys = {
+  all: ['vehicles', 'directory'] as const,
+};
+
+export function useVehicleDirectory() {
+  return useQuery({
+    queryKey: vehicleDirectoryKeys.all,
+    queryFn: listVehicleDirectory,
+  });
+}
+
+export function useRegisterVehicle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Parameters<typeof registerVehicle>[0]) => registerVehicle(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: vehicleDirectoryKeys.all });
+      queryClient.invalidateQueries({ queryKey: customerDirectoryKeys.all });
+    },
+  });
+}
 
 export function useCustomerDirectory() {
   return useQuery({
@@ -898,5 +920,17 @@ export function useLoadDemoData() {
     onSuccess: () => {
       queryClient.invalidateQueries();
     },
+  });
+}
+
+export const syncPendingKeys = {
+  all: ['sync', 'pending'] as const,
+};
+
+export function usePendingSyncEntries() {
+  return useQuery({
+    queryKey: syncPendingKeys.all,
+    queryFn: listPendingSyncEntries,
+    refetchInterval: 10_000,
   });
 }

@@ -1,5 +1,6 @@
 import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { PhotoViewerModal } from '@/components/photo-viewer-modal';
@@ -39,6 +40,8 @@ function JobCard({
   entry,
   buttonLabel,
   onButton,
+  secondaryLabel,
+  onSecondary,
   busy,
   enablePhotos,
   onAddPhoto,
@@ -48,6 +51,8 @@ function JobCard({
   entry: QueueEntry;
   buttonLabel?: string;
   onButton?: () => void;
+  secondaryLabel?: string;
+  onSecondary?: () => void;
   busy?: boolean;
   enablePhotos?: boolean;
   onAddPhoto?: (kind: PhotoKind) => void;
@@ -133,11 +138,24 @@ function JobCard({
           )}
         </Pressable>
       ) : null}
+
+      {secondaryLabel && onSecondary ? (
+        <Pressable
+          onPress={onSecondary}
+          disabled={busy}
+          className="mt-2 rounded-xl border border-neutral-300 px-4 py-2 active:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:active:bg-neutral-800"
+        >
+          <Text className="text-center text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+            {secondaryLabel}
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
 
 export default function WasherHome() {
+  const router = useRouter();
   const user = useSessionStore((s) => s.user);
   const washerId = user?.id ?? '';
 
@@ -271,12 +289,28 @@ export default function WasherHome() {
                       },
                     };
                     const action = actions[entry.job.status];
+                    const processScreen =
+                      entry.job.status === 'assigned'
+                        ? 'washing'
+                        : entry.job.status === 'in_progress'
+                          ? 'drying'
+                          : entry.job.status === 'quality_check'
+                            ? 'inspection'
+                            : null;
                     return (
                       <View key={entry.job.id} className="mb-3">
                         <JobCard
                           entry={entry}
                           buttonLabel={action?.label}
                           onButton={action?.action}
+                          secondaryLabel={
+                            processScreen ? 'Open process' : undefined
+                          }
+                          onSecondary={
+                            processScreen
+                              ? () => router.push(`/washer/${processScreen}?jobId=${entry.job.id}`)
+                              : undefined
+                          }
                           busy={busy}
                           showPrice={showPrice}
                           enablePhotos={entry.job.status === 'assigned' || entry.job.status === 'in_progress'}

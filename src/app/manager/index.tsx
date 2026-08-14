@@ -317,6 +317,27 @@ export default function ManagerHome() {
           <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Day Board</Text>
 
           <View className="mt-3 flex-row gap-2">
+            <Pressable
+              onPress={() => router.push('/manager/dashboard')}
+              className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-3 py-2.5 active:opacity-80 dark:border-brand-900 dark:bg-brand-950"
+            >
+              <Ionicons name="speedometer-outline" size={18} color="#0891B2" />
+              <Text className="text-sm font-semibold text-brand-800 dark:text-brand-200">
+                Dashboard
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/profile')}
+              className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white px-3 py-2.5 active:opacity-80 dark:border-neutral-800 dark:bg-neutral-900"
+            >
+              <Ionicons name="person-circle-outline" size={18} color="#0891B2" />
+              <Text className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                Profile
+              </Text>
+            </Pressable>
+          </View>
+
+          <View className="mt-3 flex-row gap-2">
             {stats.map((stat) => (
               <View
                 key={stat.label}

@@ -9,6 +9,7 @@ import { StatusBar, Text, View } from 'react-native';
 import { db, initDatabase } from '@/data/db';
 import { seedIfEmpty } from '@/data/seed';
 import { configureNotifications } from '@/services/notifications';
+import { SplashScreen } from '@/components/splash-screen';
 import { useSessionStore } from '@/stores/session-store';
 import { useThemeStore } from '@/stores/theme-store';
 import { useAutoSync } from '@/sync/hooks';
@@ -95,9 +96,7 @@ export default function RootLayout() {
       ) : databaseReady ? (
         <AppContent />
       ) : (
-        <View className="flex-1 items-center justify-center bg-neutral-50 dark:bg-neutral-950">
-          <Text className="text-2xl font-bold text-brand-700 dark:text-brand-400">WashFlow</Text>
-        </View>
+        <SplashScreen />
       )}
     </QueryClientProvider>
   );

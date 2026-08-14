@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useColorScheme } from 'nativewind';
@@ -17,6 +18,7 @@ const THEME_ICONS = {
 } as const;
 
 export function SessionHeader() {
+  const router = useRouter();
   const user = useSessionStore((s) => s.user);
   const signOut = useSessionStore((s) => s.signOut);
   const theme = useThemeStore((s) => s.theme);
@@ -61,6 +63,28 @@ export function SessionHeader() {
           >
             <Ionicons
               name={THEME_ICONS[theme]}
+              size={18}
+              color={colorScheme === 'dark' ? brand[400] : brand[700]}
+            />
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/notifications')}
+            accessibilityLabel="Notifications"
+            className="rounded-xl border border-neutral-200 p-2 active:opacity-70 dark:border-neutral-700"
+          >
+            <Ionicons
+              name="notifications-outline"
+              size={18}
+              color={colorScheme === 'dark' ? brand[400] : brand[700]}
+            />
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/profile')}
+            accessibilityLabel="Profile"
+            className="rounded-xl border border-neutral-200 p-2 active:opacity-70 dark:border-neutral-700"
+          >
+            <Ionicons
+              name="person-circle-outline"
               size={18}
               color={colorScheme === 'dark' ? brand[400] : brand[700]}
             />
