@@ -2,11 +2,15 @@ import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Text, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useColorScheme } from 'nativewind';
 
 import { PhotoViewerModal } from '@/components/photo-viewer-modal';
 import { PlateBadge } from '@/components/plate-badge';
 import { RoleGuard } from '@/components/role-guard';
 import { ScreenHeader } from '@/components/screen-header';
+import { useThemeStore } from '@/stores/theme-store';
+import { brand } from '@/theme/colors';
 import {
   useAddJobPhoto,
   useApproveQuality,
@@ -158,6 +162,16 @@ export default function WasherHome() {
   const router = useRouter();
   const user = useSessionStore((s) => s.user);
   const washerId = user?.id ?? '';
+  const theme = useThemeStore((s) => s.theme);
+  const cycleTheme = useThemeStore((s) => s.cycleTheme);
+  const { colorScheme } = useColorScheme();
+
+  const iconColor = colorScheme === 'dark' ? brand[400] : brand[700];
+  const THEME_ICONS = {
+    light: 'sunny',
+    dark: 'moon',
+    system: 'contrast',
+  } as const;
 
   const { data: myJobs, isLoading: myJobsLoading, isRefetching: myJobsRefetching, refetch: refetchMyJobs } = useWasherBoard(washerId);
   const { data: claimable, isLoading: claimableLoading, isRefetching: claimableRefetching, refetch: refetchClaimable } = useQueuedJobs();
@@ -222,7 +236,36 @@ export default function WasherHome() {
   return (
     <RoleGuard roles={['washer', 'manager', 'admin']}>
       <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-        <ScreenHeader title="Job Queue" />
+        <ScreenHeader
+          title="Job Queue"
+          right={
+            user?.role === 'washer' ? (
+              <View className="flex-row items-center gap-2">
+                <Pressable
+                  onPress={() => router.push('/notifications')}
+                  accessibilityLabel="Notifications"
+                  className="rounded-xl border border-neutral-200 p-2 active:opacity-70 dark:border-neutral-700"
+                >
+                  <Ionicons name="notifications-outline" size={18} color={iconColor} />
+                </Pressable>
+                <Pressable
+                  onPress={cycleTheme}
+                  accessibilityLabel="Toggle theme"
+                  className="rounded-xl border border-neutral-200 p-2 active:opacity-70 dark:border-neutral-700"
+                >
+                  <Ionicons name={THEME_ICONS[theme]} size={18} color={iconColor} />
+                </Pressable>
+                <Pressable
+                  onPress={() => router.push('/profile')}
+                  accessibilityLabel="Profile"
+                  className="rounded-xl border border-neutral-200 p-2 active:opacity-70 dark:border-neutral-700"
+                >
+                  <Ionicons name="person-circle-outline" size={18} color={iconColor} />
+                </Pressable>
+              </View>
+            ) : undefined
+          }
+        />
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ padding: 16, gap: 16 }}
