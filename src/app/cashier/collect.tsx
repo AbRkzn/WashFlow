@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import {
   ActivityIndicator,
   Alert,
@@ -104,8 +105,24 @@ function CollectBody() {
   };
 
   const sections = [
-    { title: `Ready to collect · ${entriesList.length}`, data: entriesList as CollectEntry[] },
-    { title: `Collection history · ${historyList.length}`, data: historyList as CollectEntry[] },
+    {
+      key: 'ready',
+      title: 'Ready to collect',
+      count: entriesList.length,
+      data: entriesList as CollectEntry[],
+      accent: 'emerald' as const,
+      icon: 'checkmark-done-outline' as const,
+      empty: 'No vehicles ready yet — completed jobs appear here for payment.',
+    },
+    {
+      key: 'history',
+      title: 'Collection history',
+      count: historyList.length,
+      data: historyList as CollectEntry[],
+      accent: 'neutral' as const,
+      icon: 'time-outline' as const,
+      empty: 'Paid jobs will appear here.',
+    },
   ];
 
   const renderEntry = ({ item }: { item: CollectEntry }) => {
@@ -230,13 +247,40 @@ function CollectBody() {
             />
           }
           contentContainerStyle={{ padding: 16, gap: 12 }}
-          renderSectionHeader={({ section }) => (
-            <View className="px-1 pb-1 pt-2">
-              <Text className="text-sm font-bold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                {section.title}
-              </Text>
-            </View>
-          )}
+          renderSectionHeader={({ section }) => {
+            const accent = section.accent === 'emerald';
+            const chip = accent
+              ? 'bg-emerald-100 dark:bg-emerald-950'
+              : 'bg-neutral-100 dark:bg-neutral-800';
+            const count = accent ? 'text-emerald-700 dark:text-emerald-400' : 'text-neutral-600 dark:text-neutral-400';
+            return (
+              <View className="flex-row items-center gap-2 px-1 pb-1 pt-3">
+                <View className={`h-6 w-6 items-center justify-center rounded-full ${chip}`}>
+                  <Ionicons name={section.icon} size={13} color={accent ? '#059669' : '#737373'} />
+                </View>
+                <Text className="flex-1 text-sm font-bold uppercase tracking-wide text-neutral-600 dark:text-neutral-300">
+                  {section.title}
+                </Text>
+                <View className={`rounded-full px-2.5 py-0.5 ${chip}`}>
+                  <Text className={`text-xs font-bold ${count}`}>{section.count}</Text>
+                </View>
+              </View>
+            );
+          }}
+          renderSectionFooter={({ section }) =>
+            section.data.length === 0 ? (
+              <View className="mb-1 mt-1 items-center rounded-2xl border border-dashed border-neutral-300 px-4 py-5 dark:border-neutral-700">
+                <Ionicons
+                  name={section.icon}
+                  size={22}
+                  color={section.accent === 'emerald' ? '#94A3B8' : '#A3A3A3'}
+                />
+                <Text className="mt-1.5 text-center text-sm text-neutral-500 dark:text-neutral-400">
+                  {section.empty}
+                </Text>
+              </View>
+            ) : null
+          }
           stickySectionHeadersEnabled={false}
           renderItem={renderEntry}
         />
