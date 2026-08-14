@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RoleGuard } from '@/components/role-guard';
-import { SessionHeader } from '@/components/session-header';
+import { ScreenHeader } from '@/components/screen-header';
 import { useAllUsers, useProvisionUser, useResetUserPassword, useUpdateUserRole } from '@/data/queries';
 import { ROLE_LABELS, USER_ROLES, type UserRole } from '@/domain/user';
 import { useSessionStore } from '@/stores/session-store';
@@ -125,16 +125,17 @@ export default function AdminUsersScreen() {
   return (
     <RoleGuard roles={['admin']}>
       <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-        <SessionHeader />
-        <View className="flex-row items-center justify-between px-4 py-3">
-          <Text className="text-lg font-bold text-neutral-900 dark:text-white">Manage users</Text>
-          <Pressable
-            onPress={() => setAddOpen(true)}
-            className="flex-row items-center gap-1 rounded-xl bg-brand-600 px-3 py-2 active:bg-brand-700"
-          >
-            <Text className="text-sm font-semibold text-white">Add user</Text>
-          </Pressable>
-        </View>
+        <ScreenHeader
+          title="Manage users"
+          right={
+            <Pressable
+              onPress={() => setAddOpen(true)}
+              className="flex-row items-center gap-1 rounded-xl bg-brand-600 px-3 py-2 active:bg-brand-700"
+            >
+              <Text className="text-sm font-semibold text-white">Add user</Text>
+            </Pressable>
+          }
+        />
 
         {isLoading ? (
           <View className="flex-1 items-center justify-center">

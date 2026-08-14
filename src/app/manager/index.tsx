@@ -5,7 +5,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RoleGuard } from '@/components/role-guard';
-import { SessionHeader } from '@/components/session-header';
 import { VoidRequestModal } from '@/components/void-request-modal';
 import { JobNotesModal } from '@/components/job-notes-modal';
 import { PlateBadge } from '@/components/plate-badge';
@@ -312,9 +311,17 @@ export default function ManagerHome() {
   return (
     <RoleGuard roles={['manager', 'admin']}>
       <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-        <SessionHeader />
         <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
-          <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Day Board</Text>
+          <View className="flex-row items-center gap-3">
+            <Pressable
+              onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+              accessibilityLabel="Go back"
+              className="rounded-xl border border-neutral-200 p-2 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
+            >
+              <Ionicons name="arrow-back" size={18} color="#0E7490" />
+            </Pressable>
+            <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Day Board</Text>
+          </View>
 
           <View className="mt-3 flex-row gap-2">
             <Pressable
@@ -324,15 +331,6 @@ export default function ManagerHome() {
               <Ionicons name="speedometer-outline" size={18} color="#0891B2" />
               <Text className="text-sm font-semibold text-brand-800 dark:text-brand-200">
                 Dashboard
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => router.push('/profile')}
-              className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white px-3 py-2.5 active:opacity-80 dark:border-neutral-800 dark:bg-neutral-900"
-            >
-              <Ionicons name="person-circle-outline" size={18} color="#0891B2" />
-              <Text className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
-                Profile
               </Text>
             </Pressable>
           </View>

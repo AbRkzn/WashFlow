@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { jobKeys, recentPlatesKeys, useActiveServices, useDaySlots, useQueuedCount, useRecentPlates } from '@/data/queries';
-import { SessionHeader } from '@/components/session-header';
+import { ScreenHeader } from '@/components/screen-header';
 import { checkIn, findActiveJobForPlate, lookupByPlate, type VehicleMatch } from '@/services/checkin';
 import { searchCustomersByName } from '@/services/customers';
 import type { CustomerDirectoryEntry, QueueEntry } from '@/data/repositories';
@@ -184,7 +184,23 @@ export default function CashierCheckInScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-      <SessionHeader />
+      <ScreenHeader
+        title="Check-in"
+        subtitle="Customer → service → queue"
+        right={
+          <Pressable
+            onPress={() => router.push('/cashier/queue')}
+            className="flex-row items-center gap-2 rounded-2xl bg-neutral-900 px-4 py-2.5 active:opacity-80 dark:bg-white"
+          >
+            <Text className="text-sm font-semibold text-white dark:text-neutral-900">
+              Queue
+            </Text>
+            <View className="rounded-full bg-brand-500 px-2 py-0.5">
+              <Text className="text-xs font-bold text-white">{queuedCount}</Text>
+            </View>
+          </Pressable>
+        }
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
@@ -194,27 +210,7 @@ export default function CashierCheckInScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         >
-          <View className="flex-row items-center justify-between">
-            <View>
-              <Text className="text-2xl font-bold text-neutral-900 dark:text-white">Check-in</Text>
-              <Text className="text-sm text-neutral-500 dark:text-neutral-400">
-                Customer → service → queue
-              </Text>
-            </View>
-            <Pressable
-              onPress={() => router.push('/cashier/queue')}
-              className="flex-row items-center gap-2 rounded-2xl bg-neutral-900 px-4 py-2.5 active:opacity-80 dark:bg-white"
-            >
-              <Text className="text-sm font-semibold text-white dark:text-neutral-900">
-                Queue
-              </Text>
-              <View className="rounded-full bg-brand-500 px-2 py-0.5">
-                <Text className="text-xs font-bold text-white">{queuedCount}</Text>
-              </View>
-            </Pressable>
-          </View>
-
-          <View className="mt-3 flex-row gap-2">
+          <View className="flex-row gap-2">
             {stats.map((stat) => (
               <View
                 key={stat.label}

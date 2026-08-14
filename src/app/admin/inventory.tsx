@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RoleGuard } from '@/components/role-guard';
-import { SessionHeader } from '@/components/session-header';
+import { ScreenHeader } from '@/components/screen-header';
 import {
   useAdjustStock,
   useCreateInventoryItem,
@@ -168,16 +168,17 @@ export default function AdminInventoryScreen() {
   return (
     <RoleGuard roles={['admin']}>
       <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-        <SessionHeader />
-        <View className="flex-row items-center justify-between px-4 py-3">
-          <Text className="text-lg font-bold text-neutral-900 dark:text-white">Inventory</Text>
-          <Pressable
-            onPress={() => setAddOpen(true)}
-            className="flex-row items-center gap-1 rounded-xl bg-brand-600 px-3 py-2 active:bg-brand-700"
-          >
-            <Text className="text-sm font-semibold text-white">Add item</Text>
-          </Pressable>
-        </View>
+        <ScreenHeader
+          title="Inventory"
+          right={
+            <Pressable
+              onPress={() => setAddOpen(true)}
+              className="flex-row items-center gap-1 rounded-xl bg-brand-600 px-3 py-2 active:bg-brand-700"
+            >
+              <Text className="text-sm font-semibold text-white">Add item</Text>
+            </Pressable>
+          }
+        />
 
         {lowCount > 0 ? (
           <View className="mx-4 mb-2 rounded-2xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">

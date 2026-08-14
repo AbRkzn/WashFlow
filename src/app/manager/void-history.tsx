@@ -1,10 +1,9 @@
-import { router } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RoleGuard } from '@/components/role-guard';
-import { SessionHeader } from '@/components/session-header';
+import { ScreenHeader } from '@/components/screen-header';
 import { PlateBadge } from '@/components/plate-badge';
 import { useVoidHistory } from '@/data/queries';
 import type { VoidHistoryEntry } from '@/services/payments';
@@ -57,21 +56,8 @@ export default function ManagerVoidHistory() {
   return (
     <RoleGuard roles={['manager', 'admin']}>
       <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-        <SessionHeader />
+        <ScreenHeader title="Void history" />
         <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
-          <Pressable
-            onPress={() => router.back()}
-            className="mb-2 self-start rounded-xl border border-neutral-300 px-3 py-2 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
-          >
-            <Text className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
-              Back
-            </Text>
-          </Pressable>
-
-          <Text className="text-2xl font-bold text-neutral-900 dark:text-white">
-            Void history
-          </Text>
-
           {isLoading ? (
             <ActivityIndicator color="#0891B2" className="py-10" />
           ) : entries && entries.length > 0 ? (
