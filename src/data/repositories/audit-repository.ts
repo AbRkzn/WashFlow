@@ -15,9 +15,20 @@ export interface NewAuditLog {
 export class AuditLogRepository {
   constructor(private readonly db: Database) {}
 
-  async create(input: NewAuditLog): Promise<AuditLog> {
+  async findById(id: string): Promise<AuditLog | undefined> {
+    const rows = await this.db
+      .select()
+      .from(auditLog)
+      .where(and(eq(auditLog.id, id), isNull(auditLog.deletedAt)))
+      .limit(1);
+    return rows[0];
+  }
+
+  async create(input: NewAuditLog & { id?: string }): Promise<AuditLog> {
+    const base = baseRecord();
     const record: AuditLog = {
-      ...baseRecord(),
+      ...base,
+      id: input.id ?? base.id,
       actorId: input.actorId,
       action: input.action,
       entity: input.entity,

@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { brand } from '@/theme/colors';
 
@@ -10,8 +10,9 @@ import { brand } from '@/theme/colors';
  */
 export function SplashScreen() {
   return (
-    <LinearGradient colors={['#FFFFFF', '#ECFEFF', '#CFFAFE']} className="flex-1">
-      <View className="flex-1 items-center justify-center px-10">
+    <View style={styles.fill}>
+      <LinearGradient colors={['#FFFFFF', '#ECFEFF', '#CFFAFE']} style={styles.fill}>
+        <View className="flex-1 items-center justify-center px-10">
         <View className="mb-8 items-center">
           <View className="h-28 w-28 items-center justify-center rounded-[36px] shadow-lg shadow-brand-500/30">
             <LinearGradient
@@ -46,8 +47,20 @@ export function SplashScreen() {
       <ActivityIndicator
         size="small"
         color={brand[600]}
-        className="absolute bottom-16 self-center"
+        style={styles.indicator}
       />
-    </LinearGradient>
+      </LinearGradient>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  fill: {
+    flex: 1,
+  },
+  indicator: {
+    position: 'absolute',
+    bottom: 64,
+    alignSelf: 'center',
+  },
+});

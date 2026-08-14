@@ -2,6 +2,7 @@ import type { Database } from './db';
 
 import {
   AppointmentRepository,
+  AuditLogRepository,
   CustomerRepository,
   DayCloseRepository,
   ExpenseRepository,
@@ -21,6 +22,7 @@ import { DEFAULT_SCHEDULE, SETTING_KEYS } from '@/domain/settings';
 import { toDateKey } from '@/domain/appointment';
 import { dateKey } from '@/domain/day-close';
 import { dedupeDuplicateServices } from '@/services/services';
+import type { NewAuditLog } from '@/data/repositories';
 
 const defaultWashers = [
   { id: 'seed-washer-1', email: 'washer1@washflow.app', name: 'Rico Bautista', role: 'washer' as const },
@@ -162,6 +164,10 @@ export async function seedIfEmpty(db: Database): Promise<void> {
   const demoCustomers = new CustomerRepository(db);
   if ((await demoCustomers.list()).length === 0) {
     await seedDemoData(db);
+  } else {
+    // Already seeded: still ensure the demo audit trail exists so the
+    // notifications feed is populated (idempotent per row).
+    await seedDemoAuditTrail(db);
   }
 }
 
@@ -230,7 +236,7 @@ export async function seedDemoData(db: Database): Promise<void> {
     priceCents: express.priceCents,
     status: 'queued',
   });
-  const queuedMaria = await ensureJob('seed-job-queued-maria', {
+  await ensureJob('seed-job-queued-maria', {
     customerId: maria.customerId,
     vehicleId: maria.vehicleId,
     serviceId: fullDetail.id,
@@ -393,5 +399,47 @@ export async function seedDemoData(db: Database): Promise<void> {
       varianceCents: 200,
       notes: 'Demo close — balanced drawer.',
     });
+  }
+
+  // ── Demo audit trail (local-only; feeds the notifications feed) ─────────
+  await seedDemoAuditTrail(db);
+}
+
+/** Seeds the local-only demo audit trail (feeds the notifications feed and
+ *  audit trail viewer). Idempotent per row. Requires demo jobs/payments to
+ *  exist so their ids + amounts can be referenced. */
+export async function seedDemoAuditTrail(db: Database): Promise<void> {
+  const audits = new AuditLogRepository(db);
+  const jobs = new JobRepository(db);
+
+  const job = async (id: string) => (await jobs.findById(id)) ?? { id, priceCents: 0 };
+
+  const queuedJuan = await job('seed-job-queued-juan');
+  const queuedMaria = await job('seed-job-queued-maria');
+  const completedJuan = await job('seed-job-completed-juan');
+  const voidedAna = await job('seed-job-voided-ana');
+  const paidMaria = await job('seed-job-paid-maria');
+  const paidCarlo = await job('seed-job-paid-carlo');
+
+  const yesterday = dateKey(Date.now() - 24 * 60 * 60 * 1000);
+  const demoAuditRows: (NewAuditLog & { id: string })[] = [
+    { id: 'seed-audit-checkin-juan', actorId: 'seed-washer-1', action: 'job-checked-in', entity: 'job', entityId: queuedJuan.id, details: JSON.stringify({ plate: 'ABC-1234', service: 'Express Wash' }) },
+    { id: 'seed-audit-checkin-maria', actorId: 'seed-washer-1', action: 'job-checked-in', entity: 'job', entityId: queuedMaria.id, details: JSON.stringify({ plate: 'XYZ-5678', service: 'Full Detail' }) },
+    { id: 'seed-audit-claim-ana', actorId: 'seed-washer-1', action: 'job-claim', entity: 'job', entityId: voidedAna.id, details: JSON.stringify({ plate: 'FGH-2345' }) },
+    { id: 'seed-audit-claim-carlo', actorId: 'seed-washer-2', action: 'job-claim', entity: 'job', entityId: 'seed-job-progress-carlo', details: JSON.stringify({ plate: 'KLM-8765' }) },
+    { id: 'seed-audit-completed-juan', actorId: 'seed-washer-2', action: 'job-completed', entity: 'job', entityId: completedJuan.id, details: JSON.stringify({ plate: 'ABC-1234' }) },
+    { id: 'seed-audit-paid-maria', actorId: 'seed-washer-1', action: 'job-paid', entity: 'payment', entityId: 'seed-payment-paid-maria', details: JSON.stringify({ plate: 'XYZ-5678', amountCents: paidMaria.priceCents, method: 'cash' }) },
+    { id: 'seed-audit-paid-carlo', actorId: 'seed-washer-1', action: 'job-paid', entity: 'payment', entityId: 'seed-payment-paid-carlo', details: JSON.stringify({ plate: 'KLM-8765', amountCents: paidCarlo.priceCents, method: 'gcash' }) },
+    { id: 'seed-audit-void-request', actorId: 'seed-washer-2', action: 'void-requested', entity: 'void_request', entityId: 'seed-void-pending-juan', details: JSON.stringify({ plate: 'ABC-1234', reason: 'Customer found a scratch and asked to cancel' }) },
+    { id: 'seed-audit-void-approved', actorId: 'seed-washer-1', action: 'void-approved', entity: 'void_request', entityId: 'seed-void-voided-ana', details: JSON.stringify({ plate: 'FGH-2345', amountCents: voidedAna.priceCents }) },
+    { id: 'seed-audit-appointment-booked', actorId: 'seed-washer-1', action: 'appointment-booked', entity: 'appointment', entityId: 'seed-appt-juan-0900', details: JSON.stringify({ plate: 'ABC-1234', time: '09:00' }) },
+    { id: 'seed-audit-expense', actorId: 'seed-washer-1', action: 'expense-logged', entity: 'expense', entityId: 'seed-expense-shampoo', details: JSON.stringify({ amountCents: 89900, category: 'supplies', description: 'Shampoo + microfiber refill' }) },
+    { id: 'seed-audit-day-close', actorId: 'seed-washer-1', action: 'day-close', entity: 'day_close', entityId: 'seed-day-close-yesterday', details: JSON.stringify({ day: yesterday, revenueCents: 359800, declaredCashCents: 360000, varianceCents: 200 }) },
+    { id: 'seed-audit-signin', actorId: 'seed-washer-1', action: 'sign-in', entity: 'user', entityId: 'seed-washer-1' },
+  ];
+  for (const row of demoAuditRows) {
+    if (!(await audits.findById(row.id))) {
+      await audits.create(row);
+    }
   }
 }
