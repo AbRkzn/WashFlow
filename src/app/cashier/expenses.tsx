@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { SessionHeader } from '@/components/session-header';
+import { ScreenHeader } from '@/components/screen-header';
 import { useDayExpenses, useLogExpense } from '@/data/queries';
 import { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABELS, type ExpenseCategory } from '@/domain/expense';
 import { useSessionStore } from '@/stores/session-store';
@@ -57,18 +57,17 @@ export default function CashierExpensesScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-      <SessionHeader />
-      <View className="flex-row items-center justify-between px-4 py-3">
-        <Text className="text-lg font-bold text-neutral-900 dark:text-white">
-          Today&apos;s expenses
-        </Text>
-        <Pressable
-          onPress={() => setModalOpen(true)}
-          className="flex-row items-center gap-1 rounded-xl bg-brand-600 px-3 py-2 active:bg-brand-700"
-        >
-          <Text className="text-sm font-semibold text-white">Log expense</Text>
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title="Today's expenses"
+        right={
+          <Pressable
+            onPress={() => setModalOpen(true)}
+            className="flex-row items-center gap-1 rounded-xl bg-brand-600 px-3 py-2 active:bg-brand-700"
+          >
+            <Text className="text-sm font-semibold text-white">Log expense</Text>
+          </Pressable>
+        }
+      />
 
       <View className="mx-4 mb-2 rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
         <Text className="text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">

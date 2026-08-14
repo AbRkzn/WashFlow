@@ -27,7 +27,7 @@ import {
   useSetJobNotes,
   useVoidJob,
 } from '@/data/queries';
-import { SessionHeader } from '@/components/session-header';
+import { ScreenHeader } from '@/components/screen-header';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { useSessionStore } from '@/stores/session-store';
 import type { PaymentMethod } from '@/domain/payment';
@@ -107,12 +107,7 @@ export default function CashierQueueScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-      <SessionHeader />
-      <View className="flex-row items-center justify-between px-4 py-3">
-        <Text className="text-lg font-bold text-neutral-900 dark:text-white">
-          Queue · {queued.length}
-        </Text>
-      </View>
+      <ScreenHeader title={`Queue · ${queued.length}`} />
 
       <View className="px-4 pb-2">
         <View className="flex-row items-center rounded-2xl border border-neutral-200 bg-white px-3 dark:border-neutral-800 dark:bg-neutral-900">
