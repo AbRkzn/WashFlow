@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import {
   ActivityIndicator,
   Alert,
@@ -25,11 +24,10 @@ import {
   useReceiptForPayment,
   useRequestVoid,
 } from '@/data/queries';
-import { SessionHeader } from '@/components/session-header';
+import { ScreenHeader } from '@/components/screen-header';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { useSessionStore } from '@/stores/session-store';
 import { buildNoticeForJob } from '@/services/customer-notices';
-import { logAudit } from '@/services/audit';
 import type { QueueEntry } from '@/data/repositories';
 import type { CollectionHistoryEntry } from '@/services/payments';
 import type { PaymentMethod } from '@/domain/payment';
@@ -45,7 +43,7 @@ function isHistoryEntry(entry: CollectEntry): entry is CollectionHistoryEntry {
 export default function CashierCollectScreen() {
   return (
     <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-      <SessionHeader />
+      <ScreenHeader title="Collect" />
       <ErrorBoundary>
         <CollectBody />
       </ErrorBoundary>
@@ -103,17 +101,6 @@ function CollectBody() {
       console.warn('Customer notice failed (non-fatal)', error);
       Alert.alert('Notice failed', error instanceof Error ? error.message : 'Something went wrong.');
     }
-  };
-
-  const handleOpenDrawer = () => {
-    logAudit({
-      actorId,
-      action: 'cash-drawer-opened',
-      entity: 'payment',
-      entityId: null,
-      details: { at: Date.now() },
-    });
-    Alert.alert('Drawer opened', 'Recorded in the audit trail.');
   };
 
   const sections = [
@@ -216,19 +203,6 @@ function CollectBody() {
 
   return (
     <>
-      <View className="flex-row items-center justify-between px-4 py-3">
-        <Text className="text-lg font-bold text-neutral-900 dark:text-white">Collect</Text>
-        <Pressable
-          onPress={handleOpenDrawer}
-          className="flex-row items-center gap-1.5 rounded-xl border border-brand-200 px-3 py-2 active:bg-brand-50 dark:border-brand-900 dark:active:bg-brand-950"
-        >
-          <Ionicons name="cash-outline" size={16} color="#0E7490" />
-          <Text className="text-sm font-semibold text-brand-700 dark:text-brand-300">
-            Open drawer
-          </Text>
-        </Pressable>
-      </View>
-
       {isLoading || historyLoading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#0891B2" />

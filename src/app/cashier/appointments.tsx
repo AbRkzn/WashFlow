@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, Text, Vi
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppointmentBookModal } from '@/components/appointment-book-modal';
-import { SessionHeader } from '@/components/session-header';
+import { ScreenHeader } from '@/components/screen-header';
 import { PlateBadge } from '@/components/plate-badge';
 import { EmptyState } from '@/components/empty-state';
 import {
@@ -86,10 +86,7 @@ export default function CashierAppointmentsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
-      <SessionHeader />
-      <View className="flex-row items-center justify-between px-4 pt-3">
-        <Text className="text-lg font-bold text-neutral-900 dark:text-white">Appointments</Text>
-      </View>
+      <ScreenHeader title="Bookings" />
       <View className="px-4 pt-2">
         <Pressable
           onPress={() =>
