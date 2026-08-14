@@ -27,6 +27,7 @@ const operationsLinks: QuickLink[] = [
   { label: 'Day Board', href: '/manager', icon: 'bar-chart-outline', tint: TINT.violet },
   { label: 'Customers', href: '/manager/customers', icon: 'people-outline', tint: TINT.emerald },
   { label: 'Washer Queue', href: '/washer', icon: 'sparkles-outline', tint: TINT.amber },
+  { label: 'Dashboard', href: '/manager/dashboard', icon: 'speedometer-outline', tint: TINT.blue },
 ];
 
 const managementLinks: QuickLink[] = [
@@ -38,6 +39,12 @@ const managementLinks: QuickLink[] = [
   { label: 'Closed days', href: '/admin/day-closes', icon: 'calendar-outline', tint: TINT.amber },
   { label: 'Void history', href: '/manager/void-history', icon: 'trash-outline', tint: TINT.red },
   { label: 'Audit trail', href: '/admin/audit-log', icon: 'receipt-outline', tint: TINT.violet },
+];
+
+const settingsLinks: QuickLink[] = [
+  { label: 'Notifications', href: '/notifications', icon: 'notifications-outline', tint: TINT.amber },
+  { label: 'Offline sync', href: '/sync', icon: 'cloud-outline', tint: TINT.blue },
+  { label: 'Profile & settings', href: '/profile', icon: 'person-circle-outline', tint: TINT.emerald },
 ];
 
 function QuickLinkCard({ link }: { link: QuickLink }) {
@@ -88,6 +95,7 @@ export default function AdminHome() {
 
           <QuickAccessSection title="Operations" links={operationsLinks} />
           <QuickAccessSection title="Management" links={managementLinks} />
+          <QuickAccessSection title="Settings" links={settingsLinks} />
         </ScrollView>
       </SafeAreaView>
     </RoleGuard>

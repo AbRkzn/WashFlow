@@ -110,7 +110,15 @@ export async function sendPushToUser(input: RemotePushInput): Promise<void> {
       body: input,
     });
     if (error) {
-      console.warn('send-push invocation failed (non-fatal).', error.message);
+      const context = error.context as
+        | { status?: number; data?: { error?: string } }
+        | undefined;
+      console.warn(
+        'send-push invocation failed (non-fatal).',
+        error.message,
+        context?.status ? `status=${context.status}` : '',
+        context?.data?.error ? `body=${context.data.error}` : '',
+      );
       return;
     }
     if (data?.error) {

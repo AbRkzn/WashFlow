@@ -1,5 +1,11 @@
 import { db } from '@/data/db';
-import { JobRepository, UserRepository, VehicleRepository, type QueueEntry } from '@/data/repositories';
+import {
+  JobRepository,
+  PushTokenRepository,
+  UserRepository,
+  VehicleRepository,
+  type QueueEntry,
+} from '@/data/repositories';
 import type { User } from '@/data/schema';
 import { logAudit } from '@/services/audit';
 import { notifyJobAssigned } from '@/services/notifications';
@@ -10,6 +16,7 @@ import { autoDeductForJob } from '@/services/service-inventory';
 const jobRepository = new JobRepository(db);
 const userRepository = new UserRepository(db);
 const vehicleRepository = new VehicleRepository(db);
+const pushTokenRepository = new PushTokenRepository(db);
 
 export interface WorkingEntry extends QueueEntry {
   assignedName: string | null;
@@ -35,6 +42,10 @@ async function notifyAssignment(jobId: string, washerId: string): Promise<void> 
     if (!vehicle) return;
     const washer = await userRepository.findById(washerId);
     await notifyJobAssigned(vehicle.plateNumber, washer?.name ?? 'washer');
+    const hasDevice = await pushTokenRepository.findByUserId(washerId);
+    if (!hasDevice) {
+      return;
+    }
     await sendPushToUser({
       userId: washerId,
       title: 'New job assigned',

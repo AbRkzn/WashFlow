@@ -28,6 +28,7 @@ import {
   useVoidJob,
 } from '@/data/queries';
 import { SessionHeader } from '@/components/session-header';
+import { ErrorBoundary } from '@/components/error-boundary';
 import { useSessionStore } from '@/stores/session-store';
 import type { PaymentMethod } from '@/domain/payment';
 import { formatPesos } from '@/utils/money';
@@ -277,21 +278,21 @@ export default function CashierQueueScreen() {
         onSave={handleSaveNotes}
       />
 
-      <PaymentMethodModal
-        key={payingEntry?.job.id ?? 'closed'}
-        visible={payingEntry !== null}
-        amountCents={payingEntry?.job.priceCents ?? 0}
-        busy={payJob.isPending}
-        onClose={() => setPayingJobId(null)}
-        onConfirm={handleCollect}
-      />
+      <ErrorBoundary>
+        <PaymentMethodModal
+          visible={payingEntry !== null}
+          amountCents={payingEntry?.job.priceCents ?? 0}
+          busy={payJob.isPending}
+          onClose={() => setPayingJobId(null)}
+          onConfirm={handleCollect}
+        />
 
-      <ReceiptModal
-        key={receiptJobId ?? 'closed'}
-        visible={receiptJobId !== null}
-        receipt={freshReceipt}
-        onClose={() => setReceiptJobId(null)}
-      />
+        <ReceiptModal
+          visible={receiptJobId !== null}
+          receipt={freshReceipt}
+          onClose={() => setReceiptJobId(null)}
+        />
+      </ErrorBoundary>
     </SafeAreaView>
   );
 }
