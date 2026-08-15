@@ -14,42 +14,31 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { VoidRequestModal } from '@/components/void-request-modal';
 import { JobNotesModal } from '@/components/job-notes-modal';
-import { PaymentMethodModal } from '@/components/payment-method-modal';
-import { ReceiptModal } from '@/components/receipt-modal';
 import { PlateBadge } from '@/components/plate-badge';
 import { EmptyState } from '@/components/empty-state';
 import {
-  useCollectibleJobs,
   useForceAssign,
   useMoveQueuedJob,
-  usePayJob,
   useQueuedJobs,
-  useReceiptForJob,
   useSetJobNotes,
   useVoidJob,
 } from '@/data/queries';
 import { ScreenHeader } from '@/components/screen-header';
-import { ErrorBoundary } from '@/components/error-boundary';
 import { WasherPicker } from '@/components/washer-picker';
 import { useSessionStore } from '@/stores/session-store';
-import type { PaymentMethod } from '@/domain/payment';
 import { formatPesos } from '@/utils/money';
 import { formatClockTime } from '@/utils/time';
 
 export default function CashierQueueScreen() {
   const actorId = useSessionStore((s) => s.user?.id ?? '');
   const { data: entries, isLoading, isRefetching, refetch } = useQueuedJobs();
-  const { data: collectible = [] } = useCollectibleJobs();
   const voidJob = useVoidJob();
   const setNotes = useSetJobNotes();
   const moveJob = useMoveQueuedJob();
-  const payJob = usePayJob();
   const forceAssign = useForceAssign();
 
   const [voidingJobId, setVoidingJobId] = useState<string | null>(null);
   const [notesJobId, setNotesJobId] = useState<string | null>(null);
-  const [payingJobId, setPayingJobId] = useState<string | null>(null);
-  const [receiptJobId, setReceiptJobId] = useState<string | null>(null);
   const [assigningJobId, setAssigningJobId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const queued = useMemo(() => entries ?? [], [entries]);
@@ -67,20 +56,7 @@ export default function CashierQueueScreen() {
 
   const voidingEntry = queued.find((entry) => entry.job.id === voidingJobId) ?? null;
   const notesEntry = queued.find((entry) => entry.job.id === notesJobId) ?? null;
-  const payingEntry = collectible.find((entry) => entry.job.id === payingJobId) ?? null;
   const assigningEntry = queued.find((entry) => entry.job.id === assigningJobId) ?? null;
-  const { data: freshReceipt } = useReceiptForJob(receiptJobId);
-
-  const handleCollect = (method: PaymentMethod) => {
-    if (!payingJobId) return;
-    payJob
-      .mutateAsync({ jobId: payingJobId, actorId, method })
-      .then(() => setReceiptJobId(payingJobId))
-      .catch((error) =>
-        Alert.alert('Payment failed', error instanceof Error ? error.message : 'Something went wrong.'),
-      )
-      .finally(() => setPayingJobId(null));
-  };
 
   const handleVoid = (reason: string) => {
     if (!voidingJobId) return;
@@ -170,38 +146,6 @@ export default function CashierQueueScreen() {
             <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#0891B2" />
           }
           contentContainerStyle={{ padding: 16, gap: 12 }}
-          ListHeaderComponent={
-            collectible.length > 0 ? (
-              <View className="mb-1 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950">
-                <Text className="mb-2 text-sm font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-                  Ready to collect · {collectible.length}
-                </Text>
-                {collectible.map((entry) => (
-                  <View
-                    key={entry.job.id}
-                    className="mb-2 flex-row items-center justify-between rounded-xl bg-white p-3 dark:bg-neutral-900"
-                  >
-                    <View className="flex-1 pr-3">
-                      <PlateBadge plate={entry.vehicle.plateNumber} />
-                      <Text className="mt-0.5 text-sm font-medium text-neutral-700 dark:text-neutral-200">
-                        {entry.customer.name}
-                      </Text>
-                      <Text className="text-xs text-neutral-500 dark:text-neutral-400">
-                        {entry.service?.name ?? 'Service'} · {formatPesos(entry.job.priceCents)}
-                      </Text>
-                    </View>
-                    <Pressable
-                      onPress={() => setPayingJobId(entry.job.id)}
-                      disabled={payJob.isPending}
-                      className="rounded-xl bg-emerald-600 px-4 py-2.5 active:bg-emerald-700 disabled:opacity-50"
-                    >
-                      <Text className="text-sm font-semibold text-white">Collect</Text>
-                    </Pressable>
-                  </View>
-                ))}
-              </View>
-            ) : null
-          }
           renderItem={({ item, index }) => (
             <View className="flex-row rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
               <View className="mr-4 items-center justify-center">
@@ -309,22 +253,6 @@ export default function CashierQueueScreen() {
         onClose={() => setAssigningJobId(null)}
         onPick={handleAssign}
       />
-
-      <ErrorBoundary>
-        <PaymentMethodModal
-          visible={payingEntry !== null}
-          amountCents={payingEntry?.job.priceCents ?? 0}
-          busy={payJob.isPending}
-          onClose={() => setPayingJobId(null)}
-          onConfirm={handleCollect}
-        />
-
-        <ReceiptModal
-          visible={receiptJobId !== null}
-          receipt={freshReceipt}
-          onClose={() => setReceiptJobId(null)}
-        />
-      </ErrorBoundary>
     </SafeAreaView>
   );
 }
