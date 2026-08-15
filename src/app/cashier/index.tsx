@@ -236,7 +236,7 @@ export default function CashierCheckInScreen() {
                 {recentPlates.map((recent) => (
                   <Pressable
                     key={recent.id}
-                    onPress={() => handleLookup(recent.plate)}
+                    onPress={() => handleLookup(recent.customerName ?? recent.plate)}
                     className="rounded-full border border-brand-200 bg-brand-50 px-4 py-2 active:opacity-70 dark:border-brand-900 dark:bg-brand-950"
                   >
                     <Text className="text-sm font-semibold text-brand-700 dark:text-brand-300">
