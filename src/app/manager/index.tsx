@@ -254,7 +254,7 @@ export default function ManagerHome() {
     }
   };
 
-  const sections = ACTIVE_STATUSES.map((status: JobStatus) => ({
+  const sections = ACTIVE_STATUSES.filter((s) => s !== 'queued').map((status: JobStatus) => ({
     status,
     entries: (board ?? []).filter((e) => e.job.status === status),
   }));
@@ -422,15 +422,7 @@ export default function ManagerHome() {
                     </Pressable>
 
                     <View className="mt-3 flex-row gap-2">
-                      {section.status === 'queued' ? (
-                        <Pressable
-                          onPress={() => setPicking({ job: entry, mode: 'assign' })}
-                          disabled={busy}
-                          className="flex-1 rounded-xl bg-brand-600 px-4 py-2.5 active:bg-brand-700 disabled:opacity-50"
-                        >
-                          <Text className="text-center text-sm font-semibold text-white">Assign</Text>
-                        </Pressable>
-                      ) : section.status === 'completed' ? (
+                      {section.status === 'completed' ? (
                         <Pressable
                           onPress={() => setVoidTarget(entry)}
                           disabled={busy}
