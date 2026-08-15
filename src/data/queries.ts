@@ -356,11 +356,7 @@ export function useAuditTrail() {
 export function useRecentActivity() {
   return useQuery({
     queryKey: ['activity', 'recent'] as const,
-    queryFn: async () => {
-      const result = await listRecentActivity(50);
-      console.log('[feed] useRecentActivity query resolved, items=', result.length);
-      return result;
-    },
+    queryFn: () => listRecentActivity(50),
   });
 }
 

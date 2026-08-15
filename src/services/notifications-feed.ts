@@ -221,32 +221,27 @@ function auditItems(entries: AuditTrailEntry[]): ActivityItem[] {
  * never empty on a fresh install with demo data loaded.
  */
 export async function listRecentActivity(limit = 50): Promise<ActivityItem[]> {
-  console.log('[feed] listRecentActivity start, limit=', limit);
   let jobs: ActivityItem[] = [];
   let appointments: ActivityItem[] = [];
   let dayCloses: ActivityItem[] = [];
   let audit: ActivityItem[] = [];
   try {
     jobs = await jobItems();
-    console.log('[feed] jobs ok, count=', jobs.length);
   } catch (error) {
     console.error('[feed] jobItems failed', error);
   }
   try {
     appointments = await appointmentItems();
-    console.log('[feed] appointments ok, count=', appointments.length);
   } catch (error) {
     console.error('[feed] appointmentItems failed', error);
   }
   try {
     dayCloses = await dayCloseItems();
-    console.log('[feed] dayCloses ok, count=', dayCloses.length);
   } catch (error) {
     console.error('[feed] dayCloseItems failed', error);
   }
   try {
     audit = await listAuditTrail(200).then(auditItems);
-    console.log('[feed] audit ok, count=', audit.length);
   } catch (error) {
     console.error('[feed] auditItems failed', error);
   }
@@ -258,6 +253,5 @@ export async function listRecentActivity(limit = 50): Promise<ActivityItem[]> {
       seen.add(item.id);
       return true;
     });
-  console.log('[feed] merged count=', merged.length, 'returning', Math.min(merged.length, limit));
   return merged.slice(0, limit);
 }
