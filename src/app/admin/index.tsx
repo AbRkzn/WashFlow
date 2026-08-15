@@ -33,6 +33,7 @@ const operationsLinks: QuickLink[] = [
 const managementLinks: QuickLink[] = [
   { label: 'Service presets', href: '/admin/services', icon: 'pricetag-outline', tint: TINT.blue },
   { label: 'Inventory', href: '/admin/inventory', icon: 'cube-outline', tint: TINT.red },
+  { label: 'Stock movements', href: '/admin/stock-movements', icon: 'swap-vertical-outline', tint: TINT.emerald },
   { label: 'Service recipes', href: '/admin/service-inventory', icon: 'flask-outline', tint: TINT.violet },
   { label: 'Schedule', href: '/admin/schedule', icon: 'time-outline', tint: TINT.emerald },
   { label: 'Manage users', href: '/admin/users', icon: 'people-circle-outline', tint: TINT.cyan },

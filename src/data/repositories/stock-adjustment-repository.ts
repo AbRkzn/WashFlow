@@ -1,8 +1,13 @@
-import { asc, eq, isNull } from 'drizzle-orm';
+import { asc, desc, eq, isNull } from 'drizzle-orm';
 
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
-import { stockAdjustments, type StockAdjustment } from '@/data/schema';
+import {
+  inventoryItems,
+  stockAdjustments,
+  users,
+  type StockAdjustment,
+} from '@/data/schema';
 import type { AdjustmentType } from '@/domain/inventory';
 import { enqueueChange } from '@/sync/outbox';
 
@@ -12,6 +17,11 @@ export interface NewStockAdjustment {
   type?: AdjustmentType;
   reason?: string | null;
   adjustedBy?: string | null;
+}
+
+export interface StockAdjustmentEntry extends StockAdjustment {
+  itemName: string | null;
+  actorName: string | null;
 }
 
 export class StockAdjustmentRepository {
@@ -46,5 +56,25 @@ export class StockAdjustmentRepository {
       .where(isNull(stockAdjustments.deletedAt))
       .orderBy(stockAdjustments.createdAt)
       .limit(limit);
+  }
+
+  async listRecentWithDetails(limit = 200): Promise<StockAdjustmentEntry[]> {
+    const rows = await this.db
+      .select({
+        adjustment: stockAdjustments,
+        item: inventoryItems,
+        actor: users,
+      })
+      .from(stockAdjustments)
+      .leftJoin(inventoryItems, eq(stockAdjustments.itemId, inventoryItems.id))
+      .leftJoin(users, eq(stockAdjustments.adjustedBy, users.id))
+      .where(isNull(stockAdjustments.deletedAt))
+      .orderBy(desc(stockAdjustments.createdAt))
+      .limit(limit);
+    return rows.map((row) => ({
+      ...row.adjustment,
+      itemName: row.item?.name ?? null,
+      actorName: row.actor?.name ?? null,
+    }));
   }
 }
