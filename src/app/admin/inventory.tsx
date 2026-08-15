@@ -464,9 +464,17 @@ export default function AdminInventoryScreen() {
                     );
                   })}
                 </View>
+                <TextInput
+                  value={adjustmentForm.changeQty}
+                  onChangeText={(changeQty) => setAdjustmentForm((f) => ({ ...f, changeQty }))}
+                  keyboardType="number-pad"
+                  placeholder="Or type a custom quantity"
+                  placeholderTextColor="#94A3B8"
+                  className="mt-2 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
+                />
                 {adjustmentForm.changeQty === '' ? (
                   <Text className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-                    Pick a quantity to continue.
+                    Pick or type a quantity to continue.
                   </Text>
                 ) : null}
 
@@ -499,6 +507,13 @@ export default function AdminInventoryScreen() {
                     );
                   })}
                 </View>
+                <TextInput
+                  value={adjustmentForm.reason}
+                  onChangeText={(reason) => setAdjustmentForm((f) => ({ ...f, reason }))}
+                  placeholder="Or type a custom reason"
+                  placeholderTextColor="#94A3B8"
+                  className="mt-2 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
+                />
 
                 {adjustmentForm.type === 'restock' ? (
                   <>
@@ -533,6 +548,14 @@ export default function AdminInventoryScreen() {
                         );
                       })}
                     </View>
+                    <TextInput
+                      value={adjustmentForm.cost}
+                      onChangeText={(cost) => setAdjustmentForm((f) => ({ ...f, cost }))}
+                      keyboardType="decimal-pad"
+                      placeholder="Or type a custom cost"
+                      placeholderTextColor="#94A3B8"
+                      className="mt-2 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
+                    />
                     <Text className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                       Restocks are logged as a Supplies expense in today&apos;s report.
                     </Text>
