@@ -47,7 +47,6 @@ export default function WashingProcessScreen() {
     return (
       <RoleGuard roles={['washer', 'manager', 'admin']}>
         <Screen>
-          <BackButton />
           <JobNotFound />
         </Screen>
       </RoleGuard>

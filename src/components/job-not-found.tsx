@@ -3,6 +3,8 @@ import { useRouter } from 'expo-router';
 import { Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { useSessionStore } from '@/stores/session-store';
+import { ROLE_HOME_ROUTES } from '@/utils/routes';
 
 /**
  * Empty state shown when a job detail screen can't find the job on the
@@ -10,6 +12,16 @@ import { Button } from '@/components/ui/button';
  */
 export function JobNotFound({ title = 'Job not found' }: { title?: string }) {
   const router = useRouter();
+  const role = useSessionStore((s) => s.user?.role);
+
+  const goHome = () => {
+    if (role) {
+      router.replace(ROLE_HOME_ROUTES[role]);
+    } else {
+      router.replace('/');
+    }
+  };
+
   return (
     <View className="items-center px-6 py-20">
       <View className="h-20 w-20 items-center justify-center rounded-3xl bg-neutral-100 dark:bg-neutral-900">
@@ -25,7 +37,7 @@ export function JobNotFound({ title = 'Job not found' }: { title?: string }) {
         <Button
           label="Back to my jobs"
           icon="arrow-back-outline"
-          onPress={() => router.back()}
+          onPress={goHome}
         />
       </View>
     </View>
