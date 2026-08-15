@@ -63,6 +63,17 @@ const emptyAdjustmentForm: AdjustmentFormState = {
   cost: '',
 };
 
+const QUANTITY_PRESETS = [1, 2, 3, 5, 10, 20] as const;
+
+const REASON_PRESETS: Record<AdjustmentType, string[]> = {
+  restock: ['New delivery', 'Supplier restock'],
+  usage: ['Used on job', 'Daily usage'],
+  waste: ['Damaged', 'Expired', 'Spilled'],
+  correction: ['Inventory count', 'Found on hand'],
+};
+
+const COST_PRESETS = [100, 200, 500, 1000, 2000] as const;
+
 export default function AdminInventoryScreen() {
   const actorId = useSessionStore((s) => s.user?.id ?? '');
   const { data: items, isLoading, isRefetching, refetch } = useInventory();
@@ -398,7 +409,9 @@ export default function AdminInventoryScreen() {
                     return (
                       <Pressable
                         key={key}
-                        onPress={() => setAdjustmentForm((f) => ({ ...f, type: key }))}
+                        onPress={() =>
+                          setAdjustmentForm((f) => ({ ...f, type: key, reason: '', cost: '' }))
+                        }
                         className={`rounded-xl border px-3 py-2 active:opacity-80 ${
                           selected
                             ? 'border-brand-600 bg-brand-50 dark:border-brand-400 dark:bg-brand-950'
@@ -419,44 +432,106 @@ export default function AdminInventoryScreen() {
 
                 <Text className="mb-2 mt-4 text-sm font-medium text-neutral-700 dark:text-neutral-300">
                   {adjustmentForm.type === 'restock' || adjustmentForm.type === 'correction'
-                    ? 'Quantity change (enter positive to add)'
+                    ? 'Quantity change (positive to add)'
                     : 'Quantity used/lost'}
                 </Text>
-                <TextInput
-                  value={adjustmentForm.changeQty}
-                  onChangeText={(changeQty) => setAdjustmentForm((f) => ({ ...f, changeQty }))}
-                  keyboardType="number-pad"
-                  placeholder="e.g. 5"
-                  placeholderTextColor="#94A3B8"
-                  className="rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
-                />
+                <View className="flex-row flex-wrap gap-2">
+                  {QUANTITY_PRESETS.map((qty) => {
+                    const selected = adjustmentForm.changeQty === String(qty);
+                    return (
+                      <Pressable
+                        key={qty}
+                        onPress={() =>
+                          setAdjustmentForm((f) => ({
+                            ...f,
+                            changeQty: selected ? '' : String(qty),
+                          }))
+                        }
+                        className={`w-16 rounded-xl border px-3 py-3 active:opacity-80 ${
+                          selected
+                            ? 'border-brand-600 bg-brand-50 dark:border-brand-400 dark:bg-brand-950'
+                            : 'border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900'
+                        }`}
+                      >
+                        <Text
+                          className={`text-center text-base font-bold ${
+                            selected ? 'text-brand-800 dark:text-brand-200' : 'text-neutral-900 dark:text-white'
+                          }`}
+                        >
+                          {qty}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {adjustmentForm.changeQty === '' ? (
+                  <Text className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                    Pick a quantity to continue.
+                  </Text>
+                ) : null}
 
                 <Text className="mb-2 mt-4 text-sm font-medium text-neutral-700 dark:text-neutral-300">
                   Reason (optional)
                 </Text>
-                <TextInput
-                  value={adjustmentForm.reason}
-                  onChangeText={(reason) => setAdjustmentForm((f) => ({ ...f, reason }))}
-                  placeholder="e.g. New delivery"
-                  placeholderTextColor="#94A3B8"
-                  className="rounded-xl border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
-                />
+                <View className="flex-row flex-wrap gap-2">
+                  {REASON_PRESETS[adjustmentForm.type].map((reason) => {
+                    const selected = adjustmentForm.reason === reason;
+                    return (
+                      <Pressable
+                        key={reason}
+                        onPress={() =>
+                          setAdjustmentForm((f) => ({ ...f, reason: selected ? '' : reason }))
+                        }
+                        className={`rounded-xl border px-3 py-2 active:opacity-80 ${
+                          selected
+                            ? 'border-brand-600 bg-brand-50 dark:border-brand-400 dark:bg-brand-950'
+                            : 'border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900'
+                        }`}
+                      >
+                        <Text
+                          className={`text-sm font-semibold ${
+                            selected ? 'text-brand-800 dark:text-brand-200' : 'text-neutral-900 dark:text-white'
+                          }`}
+                        >
+                          {reason}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
 
                 {adjustmentForm.type === 'restock' ? (
                   <>
                     <Text className="mb-2 mt-4 text-sm font-medium text-neutral-700 dark:text-neutral-300">
                       Restock cost (optional)
                     </Text>
-                    <View className="flex-row items-center rounded-xl border border-neutral-200 bg-white px-4 dark:border-neutral-800 dark:bg-neutral-900">
-                      <Text className="text-base text-neutral-500 dark:text-neutral-400">₱</Text>
-                      <TextInput
-                        value={adjustmentForm.cost}
-                        onChangeText={(cost) => setAdjustmentForm((f) => ({ ...f, cost }))}
-                        placeholder="0.00"
-                        placeholderTextColor="#94A3B8"
-                        keyboardType="decimal-pad"
-                        className="ml-2 flex-1 py-3 text-base text-neutral-900 dark:text-white"
-                      />
+                    <View className="flex-row flex-wrap gap-2">
+                      {COST_PRESETS.map((cents) => {
+                        const selected = adjustmentForm.cost === String(cents);
+                        return (
+                          <Pressable
+                            key={cents}
+                            onPress={() =>
+                              setAdjustmentForm((f) => ({ ...f, cost: selected ? '' : String(cents) }))
+                            }
+                            className={`rounded-xl border px-3 py-2 active:opacity-80 ${
+                              selected
+                                ? 'border-brand-600 bg-brand-50 dark:border-brand-400 dark:bg-brand-950'
+                                : 'border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900'
+                            }`}
+                          >
+                            <Text
+                              className={`text-sm font-semibold ${
+                                selected
+                                  ? 'text-brand-800 dark:text-brand-200'
+                                  : 'text-neutral-900 dark:text-white'
+                              }`}
+                            >
+                              ₱{cents}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
                     </View>
                     <Text className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                       Restocks are logged as a Supplies expense in today&apos;s report.
