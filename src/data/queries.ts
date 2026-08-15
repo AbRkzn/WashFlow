@@ -18,6 +18,7 @@ import {
   startJob,
 } from '@/services/jobs';
 import {
+  clearRecentPlates,
   countQueuedJobs,
   listActiveServices,
   listQueuedWithDetails,
@@ -241,6 +242,16 @@ export function useRecentPlates() {
   return useQuery({
     queryKey: recentPlatesKeys.list,
     queryFn: () => listRecentPlates(5),
+  });
+}
+
+export function useClearRecentPlates() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (actorId: string) => clearRecentPlates(actorId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: recentPlatesKeys.list });
+    },
   });
 }
 

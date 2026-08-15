@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { jobKeys, recentPlatesKeys, useActiveServices, useDaySlots, useQueuedCount, useRecentPlates } from '@/data/queries';
+import { jobKeys, recentPlatesKeys, useActiveServices, useClearRecentPlates, useDaySlots, useQueuedCount, useRecentPlates } from '@/data/queries';
 import { ScreenHeader } from '@/components/screen-header';
 import { checkIn, findActiveJobForPlate, lookupByPlate, type VehicleMatch } from '@/services/checkin';
 import { searchCustomersByName } from '@/services/customers';
@@ -45,6 +45,7 @@ export default function CashierCheckInScreen() {
 
   const { data: services, isLoading: servicesLoading } = useActiveServices();
   const { data: recentPlates = [] } = useRecentPlates();
+  const clearRecentPlates = useClearRecentPlates();
   const { data: queuedCount = 0 } = useQueuedCount();
   const { data: daySlots } = useDaySlots(todayKey());
   const bookingsCount = (daySlots ?? []).filter((slot) => slot.entry).length;
@@ -229,9 +230,43 @@ export default function CashierCheckInScreen() {
 
           {recentPlates.length > 0 ? (
             <View className="mt-4">
-              <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-                Recent
-              </Text>
+              <View className="mb-2 flex-row items-center justify-between">
+                <Text className="text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                  Recent
+                </Text>
+                <Pressable
+                  onPress={() => {
+                    Alert.alert(
+                      'Clear recent history?',
+                      'This removes all recent customers from the check-in screen on this device.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Clear',
+                          style: 'destructive',
+                          onPress: () => {
+                            clearRecentPlates
+                              .mutateAsync(actorId)
+                              .then(() => Alert.alert('Done', 'Recent history cleared.'))
+                              .catch((error) =>
+                                Alert.alert(
+                                  'Clear failed',
+                                  error instanceof Error ? error.message : 'Something went wrong.',
+                                ),
+                              );
+                          },
+                        },
+                      ],
+                    );
+                  }}
+                  disabled={clearRecentPlates.isPending}
+                  className="rounded-lg border border-neutral-200 px-3 py-1 active:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:active:bg-neutral-800"
+                >
+                  <Text className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">
+                    Clear history
+                  </Text>
+                </Pressable>
+              </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                 {recentPlates.map((recent) => (
                   <Pressable
