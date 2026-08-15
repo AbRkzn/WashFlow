@@ -33,6 +33,6 @@ export type { NewOutboxEntry } from './outbox-repository';
 export type { NewPayment } from './payment-repository';
 export type { ServicePatch, NewService } from './service-repository';
 export type { NewServiceInventoryItem, ServiceInventoryEntry } from './service-inventory-repository';
-export type { NewStockAdjustment } from './stock-adjustment-repository';
+export type { NewStockAdjustment, StockAdjustmentEntry } from './stock-adjustment-repository';
 export type { VehiclePatch, NewVehicle } from './vehicle-repository';
 export type { NewVoidRequest, VoidRequestEntry } from './void-request-repository';

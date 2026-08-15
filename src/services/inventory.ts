@@ -21,6 +21,10 @@ export async function listLowStockItems() {
   return inventoryRepository.listLowStock();
 }
 
+export async function listStockMovements(limit = 200) {
+  return stockAdjustmentRepository.listRecentWithDetails(limit);
+}
+
 export async function createInventoryItem(
   input: NewInventoryItem,
   actorId: string,

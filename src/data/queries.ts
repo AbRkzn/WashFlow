@@ -46,7 +46,7 @@ import {
   markAppointmentNoShow,
   listDayNoShows,
 } from '@/services/appointments';
-import { adjustStock, createInventoryItem, deleteInventoryItem, listInventory, listLowStockItems } from '@/services/inventory';
+import { adjustStock, createInventoryItem, deleteInventoryItem, listInventory, listLowStockItems, listStockMovements } from '@/services/inventory';
 import { listServiceUsageConfig, saveServiceUsages } from '@/services/service-inventory';
 import { createService, deleteService, listAllServices, updateService } from '@/services/services';
 import { listDayExpenses, logExpense } from '@/services/expenses';
@@ -142,6 +142,7 @@ export const inventoryKeys = {
   all: ['inventory'] as const,
   list: ['inventory', 'list'] as const,
   lowStock: ['inventory', 'low-stock'] as const,
+  movements: ['inventory', 'movements'] as const,
 };
 
 export const serviceInventoryKeys = {
@@ -768,6 +769,13 @@ export function useLowStockItems() {
   return useQuery({
     queryKey: inventoryKeys.lowStock,
     queryFn: listLowStockItems,
+  });
+}
+
+export function useStockMovements() {
+  return useQuery({
+    queryKey: inventoryKeys.movements,
+    queryFn: () => listStockMovements(),
   });
 }
 
