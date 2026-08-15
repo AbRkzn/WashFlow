@@ -24,6 +24,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'appointment-cancelled': 'Appointment cancelled',
   'appointment-checked-in': 'Appointment checked in',
   'expense-logged': 'Expense logged',
+  'expense-deleted': 'Expense deleted',
   'customer-registered': 'Customer registered',
   'customer-updated': 'Customer updated',
   'inventory-item-created': 'Inventory item created',

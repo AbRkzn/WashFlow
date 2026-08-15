@@ -49,7 +49,7 @@ import {
 import { adjustStock, createInventoryItem, deleteInventoryItem, listInventory, listLowStockItems, listStockMovements } from '@/services/inventory';
 import { listServiceUsageConfig, saveServiceUsages } from '@/services/service-inventory';
 import { createService, deleteService, listAllServices, updateService } from '@/services/services';
-import { listDayExpenses, logExpense } from '@/services/expenses';
+import { deleteExpense, listDayExpenses, listRecentExpenses, logExpense } from '@/services/expenses';
 import { listCustomerDirectory, registerCustomer, updateCustomer } from '@/services/customers';
 import { listVehicleDirectory, registerVehicle } from '@/services/vehicles';
 import { loadDemoData } from '@/services/demo';
@@ -853,6 +853,24 @@ export function useDayExpenses(timestamp: number) {
   return useQuery({
     queryKey: expenseKeys.day(String(timestamp)),
     queryFn: () => listDayExpenses(timestamp),
+  });
+}
+
+export function useRecentExpenses() {
+  return useQuery({
+    queryKey: expenseKeys.all,
+    queryFn: () => listRecentExpenses(),
+  });
+}
+
+export function useDeleteExpense() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { expenseId: string; actorId: string }) =>
+      deleteExpense(input.expenseId, input.actorId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: expenseKeys.all });
+    },
   });
 }
 
