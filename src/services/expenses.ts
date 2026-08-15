@@ -30,6 +30,25 @@ export async function listDayExpenses(timestamp: number = Date.now()) {
   return expenseRepository.listBetween(from, to);
 }
 
+export async function listRecentExpenses(limit = 200) {
+  return expenseRepository.listRecent(limit);
+}
+
+export async function deleteExpense(expenseId: string, actorId: string): Promise<void> {
+  const expense = await expenseRepository.findById(expenseId);
+  if (!expense) {
+    throw new Error('Expense not found.');
+  }
+  await expenseRepository.softDelete(expenseId);
+  await logAudit({
+    actorId,
+    action: 'expense-deleted',
+    entity: 'expense',
+    entityId: expenseId,
+    details: { amountCents: expense.amountCents, category: expense.category },
+  });
+}
+
 export async function sumExpenses(expenses: { amountCents: number }[]): Promise<number> {
   return expenses.reduce((sum, expense) => sum + expense.amountCents, 0);
 }

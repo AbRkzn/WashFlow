@@ -359,6 +359,16 @@ export default function ManagerHome() {
           </Pressable>
 
           <Pressable
+            onPress={() => router.push('/manager/expenses')}
+            className="mt-2 flex-row items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3 active:opacity-80 dark:border-neutral-800 dark:bg-neutral-900"
+          >
+            <Text className="text-base font-semibold text-neutral-800 dark:text-neutral-100">
+              Expenses
+            </Text>
+            <Ionicons name="cash-outline" size={20} color="#059669" />
+          </Pressable>
+
+          <Pressable
             onPress={() => router.push('/admin/audit-log')}
             className="mt-2 flex-row items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3 active:opacity-80 dark:border-neutral-800 dark:bg-neutral-900"
           >

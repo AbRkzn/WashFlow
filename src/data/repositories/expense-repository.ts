@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, isNull, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, isNull, lte, sql } from 'drizzle-orm';
 
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
@@ -54,6 +54,15 @@ export class ExpenseRepository {
         ),
       )
       .orderBy(asc(expenses.incurredAt));
+  }
+
+  async listRecent(limit = 200): Promise<Expense[]> {
+    return this.db
+      .select()
+      .from(expenses)
+      .where(isNull(expenses.deletedAt))
+      .orderBy(desc(expenses.incurredAt))
+      .limit(limit);
   }
 
   async softDelete(id: string): Promise<void> {
