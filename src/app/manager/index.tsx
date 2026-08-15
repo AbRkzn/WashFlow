@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { RoleGuard } from '@/components/role-guard';
 import { VoidRequestModal } from '@/components/void-request-modal';
 import { JobNotesModal } from '@/components/job-notes-modal';
 import { PlateBadge } from '@/components/plate-badge';
+import { WasherPicker } from '@/components/washer-picker';
 import {
   useApproveVoidRequest,
   useDayClose,
@@ -22,7 +23,6 @@ import {
   useResolveConflict,
   useSetJobNotes,
   useVoidJobAsManager,
-  useWashers,
   useWorkingBoard,
 } from '@/data/queries';
 import type { WorkingEntry } from '@/services/jobs';
@@ -38,55 +38,6 @@ import { formatClockTime } from '@/utils/time';
 interface PickTarget {
   job: WorkingEntry;
   mode: 'assign' | 'reassign';
-}
-
-function WasherPicker({
-  visible,
-  target,
-  onClose,
-  onPick,
-}: {
-  visible: boolean;
-  target: PickTarget | null;
-  onClose: () => void;
-  onPick: (washerId: string) => void;
-}) {
-  const { data: washers, isLoading } = useWashers();
-
-  return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable className="flex-1 justify-end bg-black/40" onPress={onClose}>
-        <Pressable className="rounded-t-3xl bg-white p-5 dark:bg-neutral-900">
-          <Text className="text-lg font-bold text-neutral-900 dark:text-white">
-            {target?.mode === 'reassign' ? 'Reassign to washer' : 'Assign to washer'}
-          </Text>
-          <Text className="mb-3 mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            {target?.job.vehicle.plateNumber} · {target?.job.service?.name ?? 'Service'}
-          </Text>
-          {isLoading ? (
-            <ActivityIndicator color="#0891B2" className="py-6" />
-          ) : (washers ?? []).length === 0 ? (
-            <Text className="py-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
-              No washers on file yet. Washers appear here after their first sign-in.
-            </Text>
-          ) : (
-            (washers ?? []).map((washer) => (
-              <Pressable
-                key={washer.id}
-                onPress={() => onPick(washer.id)}
-                className="mb-2 rounded-xl border border-neutral-200 p-4 active:bg-neutral-50 dark:border-neutral-800 dark:active:bg-neutral-800"
-              >
-                <Text className="text-base font-semibold text-neutral-900 dark:text-white">
-                  {washer.name}
-                </Text>
-                <Text className="text-sm text-neutral-500 dark:text-neutral-400">{washer.email}</Text>
-              </Pressable>
-            ))
-          )}
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
 }
 
 const IGNORED_COLUMNS = new Set([
@@ -640,7 +591,12 @@ export default function ManagerHome() {
 
         <WasherPicker
           visible={picking !== null}
-          target={picking}
+          title={picking?.mode === 'reassign' ? 'Reassign to washer' : 'Assign to washer'}
+          subtitle={
+            picking
+              ? `${picking.job.vehicle.plateNumber} · ${picking.job.service?.name ?? 'Service'}`
+              : undefined
+          }
           onClose={() => setPicking(null)}
           onPick={onPickWasher}
         />

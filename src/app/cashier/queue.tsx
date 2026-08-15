@@ -20,6 +20,7 @@ import { PlateBadge } from '@/components/plate-badge';
 import { EmptyState } from '@/components/empty-state';
 import {
   useCollectibleJobs,
+  useForceAssign,
   useMoveQueuedJob,
   usePayJob,
   useQueuedJobs,
@@ -29,6 +30,7 @@ import {
 } from '@/data/queries';
 import { ScreenHeader } from '@/components/screen-header';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { WasherPicker } from '@/components/washer-picker';
 import { useSessionStore } from '@/stores/session-store';
 import type { PaymentMethod } from '@/domain/payment';
 import { formatPesos } from '@/utils/money';
@@ -42,11 +44,13 @@ export default function CashierQueueScreen() {
   const setNotes = useSetJobNotes();
   const moveJob = useMoveQueuedJob();
   const payJob = usePayJob();
+  const forceAssign = useForceAssign();
 
   const [voidingJobId, setVoidingJobId] = useState<string | null>(null);
   const [notesJobId, setNotesJobId] = useState<string | null>(null);
   const [payingJobId, setPayingJobId] = useState<string | null>(null);
   const [receiptJobId, setReceiptJobId] = useState<string | null>(null);
+  const [assigningJobId, setAssigningJobId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const queued = useMemo(() => entries ?? [], [entries]);
   const filtered = useMemo(() => {
@@ -64,6 +68,7 @@ export default function CashierQueueScreen() {
   const voidingEntry = queued.find((entry) => entry.job.id === voidingJobId) ?? null;
   const notesEntry = queued.find((entry) => entry.job.id === notesJobId) ?? null;
   const payingEntry = collectible.find((entry) => entry.job.id === payingJobId) ?? null;
+  const assigningEntry = queued.find((entry) => entry.job.id === assigningJobId) ?? null;
   const { data: freshReceipt } = useReceiptForJob(receiptJobId);
 
   const handleCollect = (method: PaymentMethod) => {
@@ -86,6 +91,17 @@ export default function CashierQueueScreen() {
         Alert.alert('Void failed', error instanceof Error ? error.message : 'Something went wrong.'),
       )
       .finally(() => setVoidingJobId(null));
+  };
+
+  const handleAssign = (washerId: string) => {
+    if (!assigningJobId) return;
+    setAssigningJobId(null);
+    forceAssign
+      .mutateAsync({ jobId: assigningJobId, washerId, actorId })
+      .then(() => Alert.alert('Done', 'Job assigned to washer.'))
+      .catch((error) =>
+        Alert.alert('Assign failed', error instanceof Error ? error.message : 'Something went wrong.'),
+      );
   };
 
   const handleSaveNotes = (notes: string) => {
@@ -234,6 +250,15 @@ export default function CashierQueueScreen() {
                 ) : null}
                 <View className="mt-3 flex-row gap-2">
                   <Pressable
+                    onPress={() => setAssigningJobId(item.job.id)}
+                    disabled={forceAssign.isPending}
+                    className="self-start rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 active:bg-brand-100 dark:border-brand-900 dark:bg-brand-950 dark:active:bg-brand-900"
+                  >
+                    <Text className="text-xs font-semibold text-brand-700 dark:text-brand-300">
+                      Assign
+                    </Text>
+                  </Pressable>
+                  <Pressable
                     onPress={() => setNotesJobId(item.job.id)}
                     className="self-start rounded-lg border border-neutral-200 px-3 py-1.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
                   >
@@ -271,6 +296,18 @@ export default function CashierQueueScreen() {
         busy={setNotes.isPending}
         onClose={() => setNotesJobId(null)}
         onSave={handleSaveNotes}
+      />
+
+      <WasherPicker
+        visible={assigningEntry !== null}
+        title="Assign to washer"
+        subtitle={
+          assigningEntry
+            ? `${assigningEntry.vehicle.plateNumber} · ${assigningEntry.service?.name ?? 'Service'}`
+            : undefined
+        }
+        onClose={() => setAssigningJobId(null)}
+        onPick={handleAssign}
       />
 
       <ErrorBoundary>
