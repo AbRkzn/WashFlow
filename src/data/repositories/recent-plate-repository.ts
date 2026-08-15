@@ -79,4 +79,19 @@ export class RecentPlateRepository {
     }
     return deduped;
   }
+
+  /** Soft-delete every recent plate and enqueue a tombstone for each. */
+  async clearAll(): Promise<void> {
+    const rows = await this.db
+      .select({ id: recentPlates.id })
+      .from(recentPlates)
+      .where(isNull(recentPlates.deletedAt));
+    for (const row of rows) {
+      await this.db
+        .update(recentPlates)
+        .set({ deletedAt: Date.now(), updatedAt: Date.now(), version: sql`${recentPlates.version} + 1` })
+        .where(eq(recentPlates.id, row.id));
+      await enqueueChange('recent_plate', row.id, 'delete');
+    }
+  }
 }

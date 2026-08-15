@@ -135,6 +135,13 @@ export function listRecentPlates(limit = 5) {
   return recentPlateRepository.listRecentWithCustomers(limit);
 }
 
+export async function clearRecentPlates(actorId?: string): Promise<void> {
+  await recentPlateRepository.clearAll();
+  if (actorId) {
+    await logAudit({ actorId, action: 'recent-plates-cleared', entity: 'recent_plate', entityId: 'all' });
+  }
+}
+
 /** Most recent active (queued→quality_check) job for a plate, if any. */
 export function findActiveJobForPlate(plate: string): Promise<QueueEntry | null> {
   const normalized = normalizePlate(plate);
