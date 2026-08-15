@@ -303,6 +303,75 @@ export default function ManagerHome() {
             ))}
           </View>
 
+          {todayReport ? (
+            <View className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+              <View className="flex-row items-center justify-between">
+                <Text className="text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                  Today&apos;s summary
+                </Text>
+                <View
+                  className={`rounded-full px-2.5 py-0.5 ${
+                    todayClose ? 'bg-emerald-100 dark:bg-emerald-950' : 'bg-neutral-100 dark:bg-neutral-800'
+                  }`}
+                >
+                  <Text
+                    className={`text-xs font-semibold ${
+                      todayClose
+                        ? 'text-emerald-700 dark:text-emerald-300'
+                        : 'text-neutral-500 dark:text-neutral-400'
+                    }`}
+                  >
+                    {todayClose ? 'Closed' : 'Open'}
+                  </Text>
+                </View>
+              </View>
+              <View className="mt-2 flex-row flex-wrap">
+                <View className="w-1/2 py-1 pr-2">
+                  <Text className="text-sm text-neutral-500 dark:text-neutral-400">Jobs finished</Text>
+                  <Text className="text-base font-semibold text-neutral-900 dark:text-white">
+                    {todayReport.jobCount}
+                  </Text>
+                </View>
+                <View className="w-1/2 py-1">
+                  <Text className="text-sm text-neutral-500 dark:text-neutral-400">Voided</Text>
+                  <Text className="text-base font-semibold text-neutral-900 dark:text-white">
+                    {todayReport.voidedCount}
+                  </Text>
+                </View>
+                <View className="w-1/2 py-1 pr-2">
+                  <Text className="text-sm text-neutral-500 dark:text-neutral-400">Expenses</Text>
+                  <Text className="text-base font-semibold text-neutral-900 dark:text-white">
+                    {formatPesos(todayReport.expensesCents)}
+                  </Text>
+                </View>
+                <View className="w-1/2 py-1">
+                  <Text className="text-sm text-neutral-500 dark:text-neutral-400">No-shows</Text>
+                  <Text className="text-base font-semibold text-neutral-900 dark:text-white">
+                    {todayReport.noShowCount}
+                  </Text>
+                </View>
+              </View>
+              {todayClose ? (
+                <View className="mt-2 flex-row items-center justify-between border-t border-neutral-100 pt-2 dark:border-neutral-800">
+                  <Text className="text-sm text-neutral-500 dark:text-neutral-400">Cash variance</Text>
+                  <Text
+                    className={`text-base font-bold ${
+                      todayClose.varianceCents === 0
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : todayClose.varianceCents > 0
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-red-600 dark:text-red-400'
+                    }`}
+                  >
+                    {todayClose.varianceCents === 0
+                      ? 'Balanced'
+                      : `${todayClose.varianceCents > 0 ? 'Over' : 'Short'} ${formatPesos(Math.abs(todayClose.varianceCents))}`}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
           {performance.length > 0 ? (
             <View className="mt-3">
               <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">

@@ -163,3 +163,11 @@ export async function listEmployeePerformance(day: string): Promise<WasherPerfor
   }
   return Array.from(byWasher.values()).sort((a, b) => b.completedCount - a.completedCount);
 }
+
+/** Today's finished-job count for a single washer (no revenue — washers never see prices). */
+export async function getWasherDaySummary(washerId: string): Promise<{ completedCount: number }> {
+  const { from, to } = dayRangeOf(dateKey());
+  const finished = await jobRepository.listFinishedBetween(from, to);
+  const count = finished.filter((job) => job.assignedTo === washerId).length;
+  return { completedCount: count };
+}

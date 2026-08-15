@@ -1,17 +1,26 @@
 import { useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RoleGuard } from '@/components/role-guard';
 import { ScreenHeader } from '@/components/screen-header';
-import { useAuditTrail } from '@/data/queries';
+import { useAuditTrail, useClearAuditTrail } from '@/data/queries';
 import type { AuditTrailEntry } from '@/services/audit';
 import {
   auditActionLabel,
   auditDetailsSummary,
   auditEntityLabel,
 } from '@/domain/audit';
+import { useSessionStore } from '@/stores/session-store';
 import { formatDateTime } from '@/utils/time';
 
 function TrailCard({ entry }: { entry: AuditTrailEntry }) {
@@ -46,11 +55,34 @@ function TrailCard({ entry }: { entry: AuditTrailEntry }) {
 }
 
 export default function AuditLogScreen() {
+  const actorId = useSessionStore((s) => s.user?.id ?? '');
   const { data: entries, isLoading, isRefetching, refetch } = useAuditTrail();
+  const clearAudit = useClearAuditTrail();
   const [expanded, setExpanded] = useState(false);
 
   const list = entries ?? [];
   const shown = expanded ? list : list.slice(0, 50);
+
+  const handleClear = () => {
+    Alert.alert(
+      'Clear audit trail',
+      'This removes the on-device audit history. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: () => {
+            clearAudit
+              .mutateAsync(actorId)
+              .catch((error) =>
+                Alert.alert('Clear failed', error instanceof Error ? error.message : 'Something went wrong.'),
+              );
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <RoleGuard roles={['admin', 'manager']}>
@@ -58,16 +90,32 @@ export default function AuditLogScreen() {
         <ScreenHeader
           title="Audit trail"
           right={
-            list.length > 50 ? (
-              <Pressable
-                onPress={() => setExpanded((e) => !e)}
-                className="rounded-lg border border-neutral-300 px-3 py-1.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
-              >
-                <Text className="text-xs font-semibold text-neutral-700 dark:text-neutral-200">
-                  {expanded ? 'Show recent 50' : 'Show all'}
-                </Text>
-              </Pressable>
-            ) : null
+            <View className="flex-row items-center gap-2">
+              {list.length > 50 ? (
+                <Pressable
+                  onPress={() => setExpanded((e) => !e)}
+                  className="rounded-lg border border-neutral-300 px-3 py-1.5 active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
+                >
+                  <Text className="text-xs font-semibold text-neutral-700 dark:text-neutral-200">
+                    {expanded ? 'Show recent 50' : 'Show all'}
+                  </Text>
+                </Pressable>
+              ) : null}
+              {list.length > 0 ? (
+                <Pressable
+                  onPress={handleClear}
+                  disabled={clearAudit.isPending}
+                  className="flex-row items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 active:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:active:bg-red-950"
+                >
+                  {clearAudit.isPending ? (
+                    <ActivityIndicator size="small" color="#DC2626" />
+                  ) : (
+                    <Ionicons name="trash-outline" size={14} color="#DC2626" />
+                  )}
+                  <Text className="text-xs font-semibold text-red-600 dark:text-red-400">Clear</Text>
+                </Pressable>
+              ) : null}
+            </View>
           }
         />
 

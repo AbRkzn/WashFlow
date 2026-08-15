@@ -57,6 +57,7 @@ import {
   closeDay,
   computeDayReport,
   getDayClose,
+  getWasherDaySummary,
   listDayCloses,
   listEmployeePerformance,
   reopenDay,
@@ -66,7 +67,7 @@ import { buildReceiptForPayment, buildReceiptForJob } from '@/services/receipts'
 import { listAllUsers, provisionUserOnServer, resetRemoteUserPassword, updateRemoteUserRole } from '@/services/users';
 import { computeMonthlyReport, listMonthlyEmployeePerformance } from '@/services/monthly';
 import { getSchedule, setSchedule, getWasherPriceVisibility, setWasherPriceVisibility } from '@/services/settings';
-import { listAuditTrail } from '@/services/audit';
+import { clearAuditTrail, listAuditTrail } from '@/services/audit';
 import { listRecentActivity } from '@/services/notifications-feed';
 import { listPendingSyncEntries } from '@/services/sync-pending';
 import type { AdjustmentType } from '@/domain/inventory';
@@ -82,6 +83,7 @@ export const jobKeys = {
   queuedCount: ['jobs', 'queued', 'count'] as const,
   washer: (washerId: string) => ['jobs', 'washer', washerId] as const,
   working: ['jobs', 'working'] as const,
+  washerDaySummary: (washerId: string) => ['jobs', 'washer-summary', washerId] as const,
 };
 
 export const serviceKeys = {
@@ -326,6 +328,14 @@ export function useWasherBoard(washerId: string) {
   });
 }
 
+export function useWasherDaySummary(washerId: string) {
+  return useQuery({
+    queryKey: jobKeys.washerDaySummary(washerId),
+    queryFn: () => getWasherDaySummary(washerId),
+    enabled: Boolean(washerId),
+  });
+}
+
 export function useWorkingBoard() {
   return useQuery({
     queryKey: jobKeys.working,
@@ -351,6 +361,17 @@ export function useAuditTrail() {
   return useQuery({
     queryKey: auditKeys.trail,
     queryFn: () => listAuditTrail(200),
+  });
+}
+
+export function useClearAuditTrail() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (actorId: string) => clearAuditTrail(actorId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: auditKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['activity', 'recent'] as const });
+    },
   });
 }
 

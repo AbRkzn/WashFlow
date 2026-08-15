@@ -21,6 +21,7 @@ import {
   useQueuedJobs,
   useStartJob,
   useWasherBoard,
+  useWasherDaySummary,
   useWasherPriceVisibility,
 } from '@/data/queries';
 import type { QueueEntry } from '@/data/repositories';
@@ -51,6 +52,7 @@ function JobCard({
   onAddPhoto,
   photoBusy,
   showPrice,
+  queuePosition,
 }: {
   entry: QueueEntry;
   buttonLabel?: string;
@@ -62,6 +64,7 @@ function JobCard({
   onAddPhoto?: (kind: PhotoKind) => void;
   photoBusy?: boolean;
   showPrice?: boolean;
+  queuePosition?: number;
 }) {
   const { data: photos } = useJobPhotos(enablePhotos ? entry.job.id : '');
   const [viewingKind, setViewingKind] = useState<PhotoKind | null>(null);
@@ -72,10 +75,19 @@ function JobCard({
     <View className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
       <View className="flex-row items-center justify-between">
         <PlateBadge plate={entry.vehicle.plateNumber} size="lg" />
-        <View className="rounded-full bg-neutral-100 px-2.5 py-1 dark:bg-neutral-800">
-          <Text className={`text-xs font-semibold ${STATUS_CHIP[entry.job.status]}`}>
-            {JOB_STATUS_LABELS[entry.job.status]}
-          </Text>
+        <View className="flex-row items-center gap-2">
+          {queuePosition !== undefined ? (
+            <View className="rounded-full bg-neutral-100 px-2.5 py-1 dark:bg-neutral-800">
+              <Text className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">
+                #{queuePosition + 1} in queue
+              </Text>
+            </View>
+          ) : null}
+          <View className="rounded-full bg-neutral-100 px-2.5 py-1 dark:bg-neutral-800">
+            <Text className={`text-xs font-semibold ${STATUS_CHIP[entry.job.status]}`}>
+              {JOB_STATUS_LABELS[entry.job.status]}
+            </Text>
+          </View>
         </View>
       </View>
       <Text className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
@@ -83,6 +95,7 @@ function JobCard({
       </Text>
       <Text className="text-sm text-neutral-500 dark:text-neutral-400">
         {entry.service?.name ?? 'Service'}
+        {entry.service?.durationMinutes ? ` · ~${entry.service.durationMinutes} min` : ''}
         {showPrice ? ` · ${formatPesos(entry.job.priceCents)}` : ''}
       </Text>
 
@@ -176,6 +189,7 @@ export default function WasherHome() {
   const { data: myJobs, isLoading: myJobsLoading, isRefetching: myJobsRefetching, refetch: refetchMyJobs } = useWasherBoard(washerId);
   const { data: claimable, isLoading: claimableLoading, isRefetching: claimableRefetching, refetch: refetchClaimable } = useQueuedJobs();
   const { data: showPrice } = useWasherPriceVisibility();
+  const { data: daySummary } = useWasherDaySummary(washerId);
 
   const claimNext = useClaimNextJob();
   const claim = useClaimJob();
@@ -299,6 +313,27 @@ export default function WasherHome() {
             )}
           </Pressable>
 
+          <View className="flex-row gap-3">
+            <View className="flex-1 rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+              <Text className="text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                Done today
+              </Text>
+              <Text className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                {daySummary?.completedCount ?? 0}
+              </Text>
+              <Text className="text-xs text-neutral-400 dark:text-neutral-500">jobs finished</Text>
+            </View>
+            <View className="flex-1 rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+              <Text className="text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                My load
+              </Text>
+              <Text className="mt-1 text-2xl font-bold text-brand-700 dark:text-brand-300">
+                {(myJobs ?? []).length}
+              </Text>
+              <Text className="text-xs text-neutral-400 dark:text-neutral-500">assigned right now</Text>
+            </View>
+          </View>
+
           {myJobsLoading || claimableLoading ? (
             <View className="py-10">
               <ActivityIndicator color="#0891B2" />
@@ -373,7 +408,7 @@ export default function WasherHome() {
                     Queue is clear. New check-ins will show up here.
                   </Text>
                 ) : (
-                  (claimable ?? []).map((entry) => (
+                  (claimable ?? []).map((entry, index) => (
                     <View key={entry.job.id} className="mb-3">
                       <JobCard
                         entry={entry}
@@ -381,6 +416,7 @@ export default function WasherHome() {
                         onButton={run(claim, { jobId: entry.job.id, washerId }, 'Job claimed.')}
                         busy={busy}
                         showPrice={showPrice}
+                        queuePosition={index}
                       />
                     </View>
                   ))

@@ -39,6 +39,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'user-provisioned': 'User provisioned',
   'user-role-changed': 'User role changed',
   'user-password-reset': 'User password reset',
+  'audit-cleared': 'Audit trail cleared',
 };
 
 export const AUDIT_ENTITY_LABELS: Record<string, string> = {

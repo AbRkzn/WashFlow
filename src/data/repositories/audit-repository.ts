@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 
 import type { Database } from '@/data/db';
 import { baseRecord } from '@/data/record';
@@ -56,5 +56,15 @@ export class AuditLogRepository {
       .where(isNull(auditLog.deletedAt))
       .orderBy(desc(auditLog.createdAt))
       .limit(limit);
+  }
+
+  /** Soft-deletes every non-deleted audit row. Returns the number removed. */
+  async clearAll(): Promise<number> {
+    const rows = await this.db
+      .update(auditLog)
+      .set({ deletedAt: Date.now(), updatedAt: Date.now(), version: sql`${auditLog.version} + 1` })
+      .where(isNull(auditLog.deletedAt))
+      .returning({ id: auditLog.id });
+    return rows.length;
   }
 }

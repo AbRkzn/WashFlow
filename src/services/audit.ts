@@ -41,3 +41,15 @@ export async function listAuditTrail(limit = 200): Promise<AuditTrailEntry[]> {
     actorName: nameById.get(entry.actorId) ?? null,
   }));
 }
+
+/** Clears the on-device audit trail (soft-delete). Logs a clear marker afterwards. */
+export async function clearAuditTrail(actorId: string): Promise<number> {
+  const removed = await auditRepository.clearAll();
+  await logAudit({
+    actorId,
+    action: 'audit-cleared',
+    entity: 'audit_log',
+    details: { removedCount: removed },
+  });
+  return removed;
+}
